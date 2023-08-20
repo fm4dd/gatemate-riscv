@@ -1,0 +1,62 @@
+## file: gatemate-e1.ccf
+##
+## Gatemate E1 evaluation board hardware pin constraints
+## #######################################################
+## E1 onboard 10MHz Clock X1 and Push Button SW3
+## #######################################################
+Pin_in  "CLK"      Loc = "IO_SB_A8" | SCHMITT_TRIGGER=true;
+Pin_in  "RESET"    Loc = "IO_EB_B0";
+## #######################################################
+## onboard LEDs D1..D8 on GPIO bank EB (negative logic)
+## #######################################################
+Pin_out "LEDS[0]"  Loc = "IO_EB_B1";
+Pin_out "LEDS[1]"  Loc = "IO_EB_B2";
+Pin_out "LEDS[2]"  Loc = "IO_EB_B3";
+Pin_out "LEDS[3]"  Loc = "IO_EB_B4";
+Pin_out "LEDS[4]"  Loc = "IO_EB_B5";
+Pin_out "LEDS[5]"  Loc = "IO_EB_B6";
+Pin_out "LEDS[6]"  Loc = "IO_EB_B7";
+Pin_out "LEDS[7]"  Loc = "IO_EB_B8";
+## #######################################################
+## E1 onboard SPI Flash Memory
+## #######################################################
+Pin_out "SPIFLASH_CLK"   Loc = "IO_WA_B8";
+Pin_out "SPIFLASH_CS_N"  Loc = "IO_WA_A8";
+Pin_out "SPIFLASH_IO[0]" Loc = "IO_WA_B7";
+Pin_out "SPIFLASH_IO[1]" Loc = "IO_WA_A7";
+Pin_out "SPIFLASH_IO[2]" Loc = "IO_WA_B6";
+Pin_out "SPIFLASH_IO[3]" Loc = "IO_WA_A6";
+## #######################################################
+## E1 board PMOD-A connector constraints Digilent PMOD 8LD
+## #######################################################
+# Pin_out "LEDS[0]" Loc = "IO_NB_A0";
+# Pin_out "LEDS[1]" Loc = "IO_NB_A1";
+# Pin_out "LEDS[2]" Loc = "IO_NB_A2";
+# Pin_out "LEDS[3]" Loc = "IO_NB_A3";
+# Pin_out "LEDS[4]" Loc = "IO_NB_B0";
+# Pin_out "LEDS[5]" Loc = "IO_NB_B1";
+# Pin_out "LEDS[6]" Loc = "IO_NB_B2";
+# Pin_out "LEDS[7]" Loc = "IO_NB_B3";
+## #######################################################
+## E1 PMOD-B wired to the AE-TTL-232R USB-2-UART converter
+## connects GND, RXD and TXD to PMOD-B pin-6, pin-2, pin-1
+## #######################################################
+# Pin_in  "RXD" Loc = "IO_NB_A4"; # AE-TTL-232R CN2 pin-1
+# Pin_out "TXD" Loc = "IO_NB_A5"; # AE-TTL-232R CN2 pin-2
+## #######################################################
+## PMOD-B connector constraints for Digilent PMOD USBUART,
+## single-row PMOD on either upper (Ax) or lower (Bx) row
+## #######################################################
+## Upper Row connection assignment
+# Pin_out "CTS" Loc = "IO_NB_A4"; # RTS
+# Pin_out "TXD" Loc = "IO_NB_A5"; # RXD
+# Pin_in  "RXD" Loc = "IO_NB_A6"; # TXD
+# Pin_out "RTS" Loc = "IO_NB_A7"; # CTS
+## Lower Row connection  assignment
+Pin_out "CTS" Loc = "IO_NB_B4"; # RTS
+Pin_out "TXD" Loc = "IO_NB_B5"; # RXD
+Pin_in  "RXD" Loc = "IO_NB_B6"; # TXD
+Pin_out "RTS" Loc = "IO_NB_B7"; # CTS
+## #######################################################
+## End of hardware constraints gatemate-e1.ccf
+## #######################################################

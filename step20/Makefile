@@ -1,5 +1,5 @@
 ### ------------------------------------------------------------ ###
-### Central Makefile with shared settings across step01...19 The ###
+### Central Makefile with shared settings accross all steps. The ###
 ### Steps only differ by using additional code modules that are  ###
 ### added into each step folders Makefile.                       ###
 ### ------------------------------------------------------------ ###
@@ -20,17 +20,26 @@ CELLS_IMPL = /home/fm/cc-toolchain-linux/bin/p_r/cpelib.v
 
 ## top module, same for each step
 PROJ = SOC
-# ADD_SRC =
+
+ADD_SRC += ../rtl-shared/clockworks.v \
+           ../rtl-shared/pll_gatemate.v \
+           ../rtl-shared/emmitter_uart.v
 
 ## central, single HW constraints file, requires ../ because its called from subdir
 PIN_DEF = ../gatemate-e1.ccf
 
-all: impl
-
-synth_vlog: $(PROJ).v
+## firmware.hex contains the RISC-V app code, created from one of the src-xxx folders
+blink: $(PROJ).v
+	$(MAKE) -C src-blink
+	cp src-blink/firmware.hex .
 	$(YOSYS) -p 'read -sv $(PROJ).v $(ADD_SRC); synth_gatemate -top $(PROJ) -vlog $(PROJ)_synth.v'
+	test -e $(PIN_DEF) || exit
+	$(PR) -i $(PROJ)_synth.v -o $(PROJ) -ccf $(PIN_DEF) +uCIO > $(PROJ)_pr.log
 
-impl: synth_vlog
+hello: $(PROJ).v
+	$(MAKE) -C src-hello
+	cp src-hello/firmware.hex .
+	$(YOSYS) -p 'read -sv $(PROJ).v $(ADD_SRC); synth_gatemate -top $(PROJ) -vlog $(PROJ)_synth.v'
 	test -e $(PIN_DEF) || exit
 	$(PR) -i $(PROJ)_synth.v -o $(PROJ) -ccf $(PIN_DEF) +uCIO > $(PROJ)_pr.log
 
@@ -61,8 +70,10 @@ flash: $(PROJ)_00.cfg
 	$(OFL) -b gatemate_evb_spi -f --verify $<
 
 clean:
-	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes
+	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes firmware.hex
 	rm -rf obj_dir
+	$(MAKE) -C src-blink clean
+	$(MAKE) -C src-hello clean
 
 .SECONDARY:
 .PHONY: all prog clean

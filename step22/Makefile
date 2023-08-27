@@ -1,5 +1,5 @@
 ### ------------------------------------------------------------ ###
-### Central Makefile with shared settings across step01...19 The ###
+### Central Makefile with shared settings accross all steps. The ###
 ### Steps only differ by using additional code modules that are  ###
 ### added into each step folders Makefile.                       ###
 ### ------------------------------------------------------------ ###
@@ -20,17 +20,20 @@ CELLS_IMPL = /home/fm/cc-toolchain-linux/bin/p_r/cpelib.v
 
 ## top module, same for each step
 PROJ = SOC
-# ADD_SRC =
+
+ADD_SRC += ../rtl-shared/clockworks.v \
+           ../rtl-shared/pll_gatemate.v \
+           ../rtl-shared/emmitter_uart.v \
+           ../rtl-shared/spi_flash.v
 
 ## central, single HW constraints file, requires ../ because its called from subdir
 PIN_DEF = ../gatemate-e1.ccf
 
-all: impl
-
-synth_vlog: $(PROJ).v
+## firmware.hex contains the RISC-V app code, created from one of the src-xxx folders
+ST_NICCC: $(PROJ).v
+	$(MAKE) -C src
+	cp src/firmware.hex .
 	$(YOSYS) -p 'read -sv $(PROJ).v $(ADD_SRC); synth_gatemate -top $(PROJ) -vlog $(PROJ)_synth.v'
-
-impl: synth_vlog
 	test -e $(PIN_DEF) || exit
 	$(PR) -i $(PROJ)_synth.v -o $(PROJ) -ccf $(PIN_DEF) +uCIO > $(PROJ)_pr.log
 
@@ -53,6 +56,8 @@ vtest:
 	test -e obj_dir/V$(PROJ) && obj_dir/V$(PROJ) || echo 'Make failed, no obj_dir/V$(PROJ) found!'
 
 prog: $(PROJ)_00.cfg
+	@echo 'Programming scene data at 1M offset:'
+	$(OFL) -b gatemate_evb_spi -o 1048576 data/scene1.dat
 	@echo 'Programming E1 SPI Config:'
 	$(OFL) -b gatemate_evb_spi $<
 
@@ -61,8 +66,9 @@ flash: $(PROJ)_00.cfg
 	$(OFL) -b gatemate_evb_spi -f --verify $<
 
 clean:
-	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes
+	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes firmware.hex
 	rm -rf obj_dir
+	$(MAKE) -C src clean
 
 .SECONDARY:
 .PHONY: all prog clean

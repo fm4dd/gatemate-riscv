@@ -22,10 +22,12 @@ Pin_out "LEDS[7]"  Loc = "IO_EB_B8";
 ## #######################################################
 Pin_out "SPIFLASH_CLK"   Loc = "IO_WA_B8";
 Pin_out "SPIFLASH_CS_N"  Loc = "IO_WA_A8";
-Pin_out "SPIFLASH_IO[0]" Loc = "IO_WA_B7";
-Pin_out "SPIFLASH_IO[1]" Loc = "IO_WA_A7";
-Pin_out "SPIFLASH_IO[2]" Loc = "IO_WA_B6";
-Pin_out "SPIFLASH_IO[3]" Loc = "IO_WA_A6";
+Pin_out "SPIFLASH_MOSI"  Loc = "IO_WA_B7";
+Pin_out "SPIFLASH_MISO"  Loc = "IO_WA_A7";
+#Pin_out "SPIFLASH_IO[0]" Loc = "IO_WA_B7";
+#Pin_out "SPIFLASH_IO[1]" Loc = "IO_WA_A7";
+#Pin_out "SPIFLASH_IO[2]" Loc = "IO_WA_B6";
+#Pin_out "SPIFLASH_IO[3]" Loc = "IO_WA_A6";
 ## #######################################################
 ## E1 board PMOD-A connector constraints Digilent PMOD 8LD
 ## #######################################################

@@ -26,7 +26,7 @@ module SOC (
    wire resetn; // internal reset signal, goes low on reset
    
    reg [4:0] PC = 0;
-   reg [4:0] MEM [0:20];
+   reg [4:0] MEM [0:435];
    initial begin
        MEM[0]  = 5'b00000;
        MEM[1]  = 5'b00001;

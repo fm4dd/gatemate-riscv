@@ -85,10 +85,10 @@ module SOC (
    
    // The registers bank
    reg [31:0] RegisterBank [0:31];
-   reg [31:0] rs1; // value of source
-   reg [31:0] rs2; //  registers.
+   reg [31:0] rs1;            // value of source
+   reg [31:0] rs2;            // registers.
    wire [31:0] writeBackData; // data to be written to rd
-   wire        writeBackEn;   // asserted if data should be written to rd
+   wire writeBackEn;          // asserted if data should be written to rd
 
 `ifdef BENCH   
    integer     i;
@@ -179,14 +179,10 @@ module SOC (
    always @(posedge clk) begin
       if(state == FETCH_REGS) begin
 	 case (1'b1)
-	   isALUreg: $display(
-			      "ALUreg rd=%d rs1=%d rs2=%d funct3=%b",
-			      rdId, rs1Id, rs2Id, funct3
-			      );
-	   isALUimm: $display(
-			      "ALUimm rd=%d rs1=%d imm=%0d funct3=%b",
-			      rdId, rs1Id, Iimm, funct3
-			      );
+	   isALUreg: $display("ALUreg rd=%d rs1=%d rs2=%d funct3=%b",
+			      rdId, rs1Id, rs2Id, funct3);
+	   isALUimm: $display("ALUimm rd=%d rs1=%d imm=%0d funct3=%b",
+			      rdId, rs1Id, Iimm, funct3);
 	   isBranch: $display("BRANCH");
 	   isJAL:    $display("JAL");
 	   isJALR:   $display("JALR");

@@ -26,7 +26,7 @@ module SOC (
    wire clk;    // internal clock
    wire resetn; // internal reset signal, goes low on reset
    
-   reg [31:0] MEM [0:255]; 
+   reg [31:0] MEM [0:447]; // 447 is min to get CC_BRAM_20K
    reg [31:0] PC;          // program counter
    reg [31:0] instr;       // current instruction
    wire [4:0] leds;

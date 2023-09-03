@@ -39,6 +39,10 @@ Enjoy!
 - [Step09](step09) RISC-V CPU - Add Branch Instructions
 - [Step10](step10) RISC-V CPU - Add LUI and AUIPC Instructions
 - [Step11](step11) RISC-V CPU - Separate Memory and CPU modules
+
+<img src="images/step11-modules.svg" width="600px">
+<sup>Step11 Verilog module design</sup>
+
 - [Step12](step12) RISC-V CPU - LUT Space Optimizations
 - [Step13](step13) RISC-V CPU - Subroutines v1 (Gearbox to PLL)
 - [Step14](step14) RISC-V CPU - PLL and subroutines v2 (ABI and pseudo-instructions)

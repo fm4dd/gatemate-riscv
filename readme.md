@@ -5,7 +5,7 @@
 <img src="images/gatemate-e1.jpg" width="250px">
 &nbsp;<img src="images/riscv-color.svg" width="240px">
 
-This repository contains the Verilog project folders for the popular FPGA tutorial ["From Blinker to RISCV"](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV) by BrunoLevy. The original tutorial has been adapted for the [Gatemate E1 FPGA evaluation board](https://www.colognechip.com/programmable-logic/gatemate-evaluation-board/) made by Cologne Chips. It describes a step-by-step implementation of the [FemtoRV](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV) softcore CPU, which is a minimalistic RISC-V CPU design written in Verilog.
+This repository contains the Verilog project folders for the popular FPGA tutorial ["From Blinker to RISCV"](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV) by BrunoLevy. The original tutorial has been adapted for the [Gatemate E1 FPGA evaluation board](https://www.colognechip.com/programmable-logic/gatemate-evaluation-board/) made by Cologne Chip. It describes a step-by-step implementation of the [FemtoRV](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV) softcore CPU, which is a minimalistic RISC-V CPU design written in Verilog.
 
 Most of the tutorial steps require only a pushbutton and a set of LEDs, they can be easily completed using the Gatemate E1 evaluation board "stand-alone". Only later exercises interface with additional hardware that need extra connectivity. For example, the UART serial output introduced in step17 can be achieved with Digilents [PMOD USBUART](https://digilent.com/reference/pmod/pmodusbuart/start).
 
@@ -49,11 +49,16 @@ Enjoy!
 - [Step15](step15) RISC-V CPU - Add LOAD Instructions
 - [Step16](step16) RISC-V CPU - Add STORE Instructions
 - [Step17](step17) RISC-V CPU - Add Memory-mapping and UART output
+
+<img src="images/step17-uart-terminal.png" width="600px">
+<sup>Step17 serial console output</sup>
+
 - [Step18](step18) RISC-V CPU - Computing the Mandelbrot set
-- [Step19](step19) RISC-V CPU - Faster Simulation with Verilator
 
 <img src="images/step18-desktop.png" width="600px">
 <sup>Step18 serial console output</sup>
+
+- [Step19](step19) RISC-V CPU - Faster Simulation with Verilator
 
 #### Prerequisites
 

@@ -1,5 +1,5 @@
 DEVICE=/dev/ttyUSB2   # replace by the terminal used by your device
-BAUDS=800000
+BAUDS=833333          # UART speed ouput for CPU_FREQ 10 setting
 
 # MINITERM  exit: <ctrl> ]     package: sudo apt-get install python3-serial
 #miniterm --dtr=0 $DEVICE $BAUDS

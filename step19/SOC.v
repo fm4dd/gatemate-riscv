@@ -1,5 +1,5 @@
 // -------------------------------------------------------
-// soc.v FemtoRV Tutorial step19 Mandelbrot @20230711 fm4dd
+// soc.v FemtoRV Tutorial step19 Verilator @20230711 fm4dd
 //
 // Requires: Gatemate E1 eval board v3.1B
 //
@@ -8,7 +8,7 @@
 // Computes the Mandelbrot set with ASCII-art output sent
 // to the UART pins. Connect a USB-to-serial converter and
 // see the output with a terminal program like GTKTerm.
-//    
+//
 // Code is tested on a Gatemate E1 eval board v3.1B
 // E1 onboard user button SW3 is assigned to RESET.
 // LEDS[7:0] is assigned to E1 onboard Leds D1..D8.
@@ -215,12 +215,14 @@ module Memory (
    
    always @(posedge clk) begin
       if(mem_rstrb) begin
+// verilator lint_off WIDTH
          mem_rdata <= MEM[word_addr];
       end
       if(mem_wmask[0]) MEM[word_addr][ 7:0 ] <= mem_wdata[ 7:0 ];
       if(mem_wmask[1]) MEM[word_addr][15:8 ] <= mem_wdata[15:8 ];
       if(mem_wmask[2]) MEM[word_addr][23:16] <= mem_wdata[23:16];
       if(mem_wmask[3]) MEM[word_addr][31:24] <= mem_wdata[31:24];	 
+// verilator lint_on WIDTH
    end
 endmodule
 
@@ -500,11 +502,11 @@ endmodule
 
 
 module SOC (
-    input 	 CLK,   // system clock 
-    input 	 RESET, // reset button
-    output [7:0] LEDS,  // system LEDs
-    input 	 RXD,   // UART receive
-    output 	 TXD    // UART transmit
+    input  CLK,        // E1 system clock 
+    input  RESET,      // E1 user button
+    output [7:0] LEDS, // E1 onboard LEDs
+    input  RXD,        // UART receive
+    output TXD         // UART transmit
 );
 
    wire clk;

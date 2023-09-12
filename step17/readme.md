@@ -6,6 +6,10 @@ This folder is step17 of the popular FPGA tutorial ["From Blinker to RISCV"](htt
 
 Step17 implements memory-mapped IO for controlling devices, and adds the UART serial device with a target baudrate of 1M. The assembly program gets the new "putc" function that repeatedly sends a set of alphabet characters "abcdefghijklmnopqrstuvwxyz" to the UART.
 
+Module design:
+<img src="../images/step17-18-modules.svg">
+
+The assembly program:
 ```verilog
   initial begin
       LI(sp,32'h1800);   // End of RAM, 6kB

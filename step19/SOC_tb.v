@@ -8,7 +8,7 @@ module CC_PLL #(
         parameter CP_FILTER_CONST = 4
 )(
         input  CLK_REF, CLK_FEEDBACK, USR_CLK_REF,
-        input  USR_LOCKED_STDY_RST, USR_SET_SEL,
+        input  USR_LOCKED_STDY_RST,
         output USR_PLL_LOCKED_STDY, USR_PLL_LOCKED,
         output CLK270, CLK180, CLK90, CLK0, CLK_REF_OUT
 );

@@ -55,15 +55,11 @@ vtest:
 	(cd obj_dir; make -f VSOC.mk)
 	test -e obj_dir/V$(PROJ) && obj_dir/V$(PROJ) || echo 'Make failed, no obj_dir/V$(PROJ) found!'
 
-prog: $(PROJ)_00.cfg
+prog: $(PROJ)_00.cfg.bit
 	@echo 'Programming scene data at 1M offset:'
-	$(OFL) -b gatemate_evb_spi -o 1048576 data/scene1.dat
+	$(OFL) -b gatemate_evb_spi -o 1048576 data/scene1.dat -f
 	@echo 'Programming E1 SPI Config:'
-	$(OFL) -b gatemate_evb_spi $<
-
-flash: $(PROJ)_00.cfg
-	@echo 'Programming E1 SPI Flash:'
-	$(OFL) -b gatemate_evb_spi -f --verify $<
+	$(OFL) -b gatemate_evb_spi -f $<
 
 clean:
 	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes firmware.hex

@@ -113,4 +113,4 @@ Done
 Wait for CFG_DONE DONE
 ```
 ### Output
-With the UART assigned to the E1 boards PMODB connector pins, the Digilent PMOD-UART converter to see the RISC-V program output, and we can display it in a terminal window. The terminal output runs at a bitdrate of 833.333, falling short of the UART target speed of 1Mbaud (1.000.000). The root cause is discussed in [Issue #3](https://github.com/fm4dd/gatemate-riscv/issues/3).
+With the UART assigned to the E1 boards PMODB connector pins, the Digilent PMOD-UART converter receives the RISC-V program output, and we can display it in a terminal window. The terminal output runs at a bitrate of 833.333, falling short of the UART target speed of 1Mbaud (1.000.000). The root cause is discussed in [Issue #3](https://github.com/fm4dd/gatemate-riscv/issues/3).

@@ -18,11 +18,11 @@
 // LEDS[7:0] is assigned to E1 onboard Leds D1..D8.
 // TXD/RXD is assigned to USB<->serial converter on PMODB.
 // 
-// How to run: make sieve, make prog and make test
+// How to run: run make and make prog, power-cycle board
 // -------------------------------------------------------
 `default_nettype none
 `define CPU_FREQ 10             // RISCV CPU frequency in MHz
-`define ARTY                    // define board type for SPI mode
+`define CCA1                    // define board type for SPI mode
 
 module Memory (
    input             clk,
@@ -369,9 +369,9 @@ module SOC (
    
    wire [31:0] RAM_rdata;
    wire [29:0] mem_wordaddr = mem_addr[31:2];
-   wire isSPIFlash  = mem_addr[23];      
-   wire isIO        = mem_addr[23:22] == 2'b01;
-   wire isRAM = !(mem_addr[23] | mem_addr[22]);
+   wire isSPIFlash  = mem_addr[23];              // 1xxxx  0x800000
+   wire isIO        = mem_addr[23:22] == 2'b01;  // 01xxx
+   wire isRAM = !(mem_addr[23] | mem_addr[22]);  // 00xxx
    wire mem_wstrb = |mem_wmask;
    
    Memory RAM(

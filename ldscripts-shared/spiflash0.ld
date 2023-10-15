@@ -1,5 +1,5 @@
 MEMORY {
-   FLASH (RX)  : ORIGIN = 0x00820000, LENGTH = 0x100000 /* 1M in flash */
+   FLASH (RX)  : ORIGIN = 0x00880000, LENGTH = 0x080000 /* 1M in flash */
 }
 SECTIONS {
     everything : {

@@ -335,15 +335,15 @@ endmodule
 
 
 module SOC (
-    input 	     CLK, // system clock 
-    input 	     RESET,// reset button
-    output [7:0] LEDS, // system LEDs
-    input 	     RXD, // UART receive
-    output 	     TXD, // UART transmit
-    output 	     SPIFLASH_CLK,  // SPI flash clock
-    output 	     SPIFLASH_CS_N, // SPI flash chip select (active low)
-    inout            SPIFLASH_MOSI, // SPI flash IO pins
-    inout            SPIFLASH_MISO  // SPI flash IO pins
+    input  CLK,               // system clock 
+    input  RESET,             // reset button
+    output [7:0] LEDS,        // system LEDs
+    input  RXD,               // UART receive
+    output TXD,               // UART transmit
+    output SPIFLASH_CLK,      // SPI flash clock
+    output SPIFLASH_CS_N,     // SPI flash chip select (active low)
+    output SPIFLASH_MOSI,     // SPI flash MOSI output
+    input  SPIFLASH_MISO      // SPI flash MISO input
 );
 
    wire clk;

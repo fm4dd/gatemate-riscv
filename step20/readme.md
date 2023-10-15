@@ -4,7 +4,7 @@
 
 This folder is step20 of the popular FPGA tutorial ["From Blinker to RISCV"](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV) by BrunoLevy.
 
-Step20 demonstrates the creation of a separate native RISC-V assembly program, and how run it from the FPGA BRAM. Two example  programs are saved in the subfolders src-blink and src-hello. By default, 'make' builds the src-blink' assemply program that simply blinks the onboard LED's. By using 'make hello', the second example program is built, which writes a "Hello World!" string to the UART.
+Step20 demonstrates the creation of a separate native RISC-V assembly program, and how run it from the FPGA BRAM. Two example  programs are saved in the subfolders src-blink and src-hello. By default, 'make' builds the src-blink' assembly program that simply blinks the onboard LED's. By using 'make hello', the second example program is built, which writes a "Hello World!" string to the UART.
 
 ### Build FPGA Bitstream
 

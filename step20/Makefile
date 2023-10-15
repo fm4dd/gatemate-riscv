@@ -1,7 +1,5 @@
 ### ------------------------------------------------------------ ###
-### Central Makefile with shared settings accross all steps. The ###
-### Steps only differ by using additional code modules that are  ###
-### added into each step folders Makefile.                       ###
+### Local project Makefile for step20.                           ###
 ### ------------------------------------------------------------ ###
 
 ## toolchain

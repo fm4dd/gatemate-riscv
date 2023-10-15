@@ -1,7 +1,5 @@
 ### ------------------------------------------------------------ ###
-### Central Makefile with shared settings accross all steps. The ###
-### Steps only differ by using additional code modules that are  ###
-### added into each step folders Makefile.                       ###
+### Local project Makefile for step22.                           ###
 ### ------------------------------------------------------------ ###
 
 ## toolchain
@@ -50,7 +48,6 @@ vtest:
 	@echo 'Running verilator testbench simulation'
 	test ! -d ./obj_dir || rm -rf ./obj_dir
 	test -e $(PROJ).cpp || echo 'Error $(PROJ).cpp not found!'
-	#/usr/bin/verilator --CFLAGS '-I..' -DBENCH -Wno-fatal --top-module $(PROJ) --cc --exe $(PROJ).cpp $(PROJ).v $(ADD_SRC)
 	/usr/bin/verilator -DBENCH -Wno-fatal --top-module $(PROJ) --cc --exe $(PROJ).cpp $(PROJ).v $(ADD_SRC) $(PROJ)_tb.v
 	(cd obj_dir; make -f VSOC.mk)
 	test -e obj_dir/V$(PROJ) && obj_dir/V$(PROJ) || echo 'Make failed, no obj_dir/V$(PROJ) found!'

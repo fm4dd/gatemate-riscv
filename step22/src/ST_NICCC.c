@@ -266,7 +266,7 @@ FILE* f = NULL;
 uint8_t next_spi_byte() {
    uint8_t result;
    if(f == NULL) {
-      f = fopen("../../../FIRMWARE/EXAMPLES/DATA/scene1.dat","rb");
+      f = fopen("../data/scene1.dat","rb");
       if(f == NULL) {
 	 printf("Could not open data file\n");
 	 exit(-1);

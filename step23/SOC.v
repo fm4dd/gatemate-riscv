@@ -441,8 +441,6 @@ module SOC (
 	                           IO_rdata ;
 
    assign mem_rbusy = SPIFlash_rbusy;
-   assign LEDS[4:0] = leds;
-   assign LEDS[7:5] = 3'b000;
    
 `ifdef BENCH
    always @(posedge clk) begin

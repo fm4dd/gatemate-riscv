@@ -61,7 +61,7 @@ flash: $(PROJ)_00.cfg
 	$(OFL) -b gatemate_evb_spi -f --verify $<
 
 clean:
-	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes
+	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes abc.history
 	rm -rf obj_dir
 
 .SECONDARY:

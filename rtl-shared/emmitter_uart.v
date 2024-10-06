@@ -11,9 +11,9 @@ module corescore_emitter_uart
    output wire 	    o_uart_tx
 );
 
-   localparam START_VALUE = clk_freq_hz/baud_rate;
+   localparam START_VALUE = (clk_freq_hz/baud_rate)-2;
    
-   localparam WIDTH = $clog2(START_VALUE);
+   localparam WIDTH = $clog2(START_VALUE+2);
    
    reg [WIDTH:0]  cnt = 0;
    

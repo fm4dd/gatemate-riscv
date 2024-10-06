@@ -7,7 +7,10 @@
 ## toolchain
 YOSYS = /home/fm/cc-toolchain-linux/bin/yosys/yosys
 PR    = /home/fm/cc-toolchain-linux/bin/p_r/p_r
-OFL   = /home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader
+# disable CC-provided openFPGALoader, switch to "OSS CAD Suite" version
+# see https://github.com/fm4dd/gatemate-riscv/issues/5
+#OFL   = /home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader
+OFL   = /home/fm/oss-cad-suite/bin/openFPGALoader
 
 GTKW = gtkwave
 IVL  = iverilog

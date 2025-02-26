@@ -5,12 +5,13 @@
 ### ------------------------------------------------------------ ###
 
 ## toolchain
-YOSYS = /home/fm/cc-toolchain-linux/bin/yosys/yosys
-PR    = /home/fm/cc-toolchain-linux/bin/p_r/p_r
+# disable CC-provided Yosys, switch to "OSS CAD Suite" version
+# see https://github.com/fm4dd/gatemate-riscv/issues/8
+YOSYS = /home/fm/oss-cad-suite/bin/yosys
 # disable CC-provided openFPGALoader, switch to "OSS CAD Suite" version
 # see https://github.com/fm4dd/gatemate-riscv/issues/5
-#OFL   = /home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader
 OFL   = /home/fm/oss-cad-suite/bin/openFPGALoader
+PR    = /home/fm/cc-toolchain-linux/bin/p_r/p_r
 
 GTKW = gtkwave
 IVL  = iverilog
@@ -64,7 +65,7 @@ flash: $(PROJ)_00.cfg
 	$(OFL) -b gatemate_evb_spi -f --verify $<
 
 clean:
-	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes abc.history
+	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.idh *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes abc.history
 	rm -rf obj_dir
 
 .SECONDARY:

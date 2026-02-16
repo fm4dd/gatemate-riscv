@@ -31,7 +31,7 @@ module Memory (
    reg [31:0] MEM [0:1535]; // 1536 4-bytes words = 6 Kb of RAM in total
 
 `ifdef BENCH
-   localparam slow_bit=12;
+   localparam slow_bit=2;
 `else
    localparam slow_bit=17;
 `endif
@@ -61,21 +61,21 @@ module Memory (
    `define dy ((`ymax-`ymin)/80)
    `define norm_max (4 << `mandel_shift)
    
-   integer    mandelstart_ = 12;
-   integer    blink_       = 16;
-   integer    loop_y_      = 76;
-   integer    loop_x_      = 84;
-   integer    loop_Z_      = 96;
-   integer    exit_Z_      = 188;
-   integer    wait_        = 264;
-   integer    wait_L0_     = 272;
-   integer    putc_        = 284; 
-   integer    putc_L0_     = 292;
-   integer    mulsi3_      = 308;
-   integer    mulsi3_L0_   = 316;
-   integer    mulsi3_L1_   = 328;
-   
-   integer    colormap_    = 344;
+   // 1. Declare integers without values at the module level
+   integer mandelstart_;
+   integer blink_;
+   integer loop_y_;
+   integer loop_x_;
+   integer loop_Z_;
+   integer exit_Z_;
+   integer wait_;
+   integer wait_L0_;
+   integer putc_;
+   integer putc_L0_;
+   integer mulsi3_;
+   integer mulsi3_L0_;
+   integer mulsi3_L1_;
+   integer colormap_;
 
    // X,Y         : s0,s1
    // Cr,Ci       : s2,s3
@@ -85,6 +85,23 @@ module Memory (
    // 128: s11
    
    initial begin
+      // 2. Explicitly assign values at the very start of the initial block
+      mandelstart_ = 12;
+      blink_       = 16;
+      loop_y_      = 76;
+      loop_x_      = 84;
+      loop_Z_      = 96;
+      exit_Z_      = 188;
+      wait_        = 264;
+      wait_L0_     = 272;
+      putc_        = 284; 
+      putc_L0_     = 292;
+      mulsi3_      = 308;
+      mulsi3_L0_   = 316;
+      mulsi3_L1_   = 328;
+      colormap_    = 344;
+
+      // 3. Now proceed with the assembly calls
       LI(sp,32'h1800);   // End of RAM, 6kB
       LI(gp,32'h400000); // IO page
 
@@ -367,13 +384,6 @@ module Processor (
 				             Bimm[31:0] );
    wire [31:0] PCplus4 = PC+4;
    
-   // register write back
-   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
-			      isLUI         ? Uimm      :
-			      isAUIPC       ? PCplusImm :
-			      isLoad        ? LOAD_data :
-			                      aluOut;
-
    wire [31:0] nextPC = ((isBranch && takeBranch) || isJAL) ? PCplusImm   :
 	                                  isJALR   ? {aluPlus[31:1],1'b0} :
 	                                             PCplus4;
@@ -407,9 +417,16 @@ module Processor (
      mem_halfwordAccess ? {{16{LOAD_sign}}, LOAD_halfword} :
                           mem_rdata ;
 
+   // register write back
+   // ------------------------------------------------------------------------
+   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
+			      isLUI         ? Uimm      :
+			      isAUIPC       ? PCplusImm :
+			      isLoad        ? LOAD_data :
+			                      aluOut;
+
    // Store
    // ------------------------------------------------------------------------
-
    assign mem_wdata[ 7: 0] = rs2[7:0];
    assign mem_wdata[15: 8] = loadstore_addr[0] ? rs2[7:0]  : rs2[15: 8];
    assign mem_wdata[23:16] = loadstore_addr[1] ? rs2[7:0]  : rs2[23:16];

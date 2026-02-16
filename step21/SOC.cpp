@@ -2,10 +2,10 @@
 #include "verilated.h"
 #include <iostream>
 
-
 int main(int argc, char** argv, char** env) {
    VSOC top;
    top.CLK = 0;
+   top.RESET = 1;
    CData prev_LEDS;
 
    // Main simulation loop.

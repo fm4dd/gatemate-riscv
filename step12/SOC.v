@@ -6,7 +6,7 @@
 // Notes:
 // Step 12 std RISC-V asm subroutines 1 on the RISC-V CPU.
 // LUT optimization, gaining a lot of space!
-// The 5 LEDs show the state.
+// The 8 LEDs show the state.
 //
 // Code is tested on a Gatemate E1 eval board v3.1B
 // E1 onboard user button SW3 is assigned to RESET.

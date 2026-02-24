@@ -1,73 +1,31 @@
-### ------------------------------------------------------------ ###
-### Local project Makefile for step21.                           ###
-### ------------------------------------------------------------ ###
+### Local Makefile, adding the exercise-specific code modules.  ###
+### Anything else is defined in the upper directory centralized ###
+### Makefile config.mk                                          ###
+###            --- Local Firmware Integration ---               ###
+### Append firmware.hex as a dependency to existing targets.    ###
+### ----------------------------------------------------------- ###
+include ../config.mk
 
-## toolchain
-# disable CC-provided Yosys, switch to "OSS CAD Suite" version
-# see https://github.com/fm4dd/gatemate-riscv/issues/8
-YOSYS = /home/fm/oss-cad-suite/bin/yosys
-# disable CC-provided openFPGALoader, switch to "OSS CAD Suite" version
-# see https://github.com/fm4dd/gatemate-riscv/issues/5
-OFL   = /home/fm/oss-cad-suite/bin/openFPGALoader
-PR    = /home/fm/cc-toolchain-linux/bin/p_r/p_r
+# 1. Add firmware.hex as a dependency for synthesis and simulation
+synth_vlog: firmware.hex
+impl: firmware.hex
+test: firmware.hex
+vtest: firmware.hex
 
-GTKW = gtkwave
-IVL  = iverilog
-VVP  = vvp
-IVLFLAGS = -Winfloop -g2012 -gspecify -Ttyp
+# 2. Rule to build the hex file by calling the sub-directory Makefile
+firmware.hex: src-sieve/sieve.c src-sieve/print.c src-sieve/putchar.S src-sieve/start.S src-sieve/wait.S
+	@echo "--- Building RISC-V Firmware ---"
+	$(MAKE) -C src-sieve
+	cp src-sieve/firmware.hex .
 
-## simulation libraries
-CELLS_SYNTH = /home/fm/cc-toolchain-linux/bin/yosys/share/gatemate/cells_sim.v
-CELLS_IMPL = /home/fm/cc-toolchain-linux/bin/p_r/cpelib.v
-
-## top module, same for each step
-PROJ = SOC
-
+# 3. Add source files for the FPGA synthesis
 ADD_SRC += ../rtl-shared/clockworks.v \
            ../rtl-shared/pll_gatemate.v \
            ../rtl-shared/emmitter_uart.v
 
-## central, single HW constraints file, requires ../ because its called from subdir
-PIN_DEF = ../gatemate-e1.ccf
+# 4. Clean the firmware when cleaning the project
+clean: clean_firmware
 
-## firmware.hex contains the RISC-V app code, created from one of the src-xxx folders
-sieve: $(PROJ).v
-	$(MAKE) -C src-sieve
-	cp src-sieve/firmware.hex .
-	$(YOSYS) -p 'read -sv $(PROJ).v $(ADD_SRC); synth_gatemate -top $(PROJ) -vlog $(PROJ)_synth.v'
-	test -e $(PIN_DEF) || exit
-	$(PR) -i $(PROJ)_synth.v -o $(PROJ) -ccf $(PIN_DEF) +uCIO > $(PROJ)_pr.log
-
-## iVerilog simulation
-test:
-	@echo 'Running testbench simulation'
-	test ! -e $(PROJ).tb || rm $(PROJ).tb
-	test ! -e $(PROJ).vcd || rm $(PROJ).vcd
-	/usr/bin/iverilog -DBENCH -o $(PROJ).tb -s $(PROJ)_tb $(PROJ)_tb.v $(PROJ).v $(ADD_SRC)
-	/usr/bin/vvp $(PROJ).tb
-
-## Verilator simulation
-vtest:
-	@echo 'Running verilator testbench simulation'
-	test ! -d ./obj_dir || rm -rf ./obj_dir
-	test -e $(PROJ).cpp || echo 'Error $(PROJ).cpp not found!'
-	#/usr/bin/verilator --CFLAGS '-I..' -DBENCH -Wno-fatal --top-module $(PROJ) --cc --exe $(PROJ).cpp $(PROJ).v $(ADD_SRC)
-	/usr/bin/verilator -DBENCH -Wno-fatal --top-module $(PROJ) --cc --exe $(PROJ).cpp $(PROJ).v $(ADD_SRC) $(PROJ)_tb.v
-	(cd obj_dir; make -f VSOC.mk)
-	test -e obj_dir/V$(PROJ) && obj_dir/V$(PROJ) || echo 'Make failed, no obj_dir/V$(PROJ) found!'
-
-prog: $(PROJ)_00.cfg
-	@echo 'Programming E1 SPI Config:'
-	$(OFL) -b gatemate_evb_spi $<
-
-flash: $(PROJ)_00.cfg
-	@echo 'Programming E1 SPI Flash:'
-	$(OFL) -b gatemate_evb_spi -f --verify $<
-
-clean:
-	rm -f $(PROJ)_synth.v $(PROJ)_pr.log $(PROJ)_00.* *.id *.tb *.prn *.ref* lut*.txt *.idh *.net *.pos *.cdf *.pathes firmware.hex
-	rm -rf obj_dir
+clean_firmware:
 	$(MAKE) -C src-sieve clean
-
-.SECONDARY:
-.PHONY: all prog clean
+	rm -f firmware.hex

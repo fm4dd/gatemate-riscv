@@ -20,6 +20,11 @@ module SOC_tb();
 	 #1 CLK = ~CLK;
 	 if(LEDS != prev_LEDS) begin
 	    $display("LEDS = %b",LEDS);
+            // Stop when LEDs reach a specific value
+            if(LEDS == 8'b11111000) begin 
+                $display("Target LED state reached. Ending...");
+                $finish;
+            end
 	 end
 	 prev_LEDS <= LEDS;
       end

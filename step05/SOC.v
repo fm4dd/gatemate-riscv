@@ -5,7 +5,7 @@
 //
 // Notes:
 // Step 5 creates a RISC-V CPU register bank and state
-// machine. 5 LEDS show the state.
+// machine. 8 LEDS show the state.
 //
 // Code is tested on a Gatemate E1 eval board v3.1B
 // E1 onboard user button SW3 is assigned to RESET.
@@ -29,11 +29,10 @@ module SOC (
    reg [31:0] MEM [0:447]; // 447 is min to get CC_BRAM_20K
    reg [31:0] PC;          // program counter
    reg [31:0] instr;       // current instruction
-   wire [4:0] leds;
+   wire [7:0] leds;
 
    initial begin
       PC = 0;
-      
       // add x0, x0, x0
       //                   rs2   rs1  add  rd   ALUREG
       instr = 32'b0000000_00000_00000_000_00000_0110011;
@@ -56,10 +55,8 @@ module SOC (
       // ebreak
       //                                        SYSTEM
       MEM[5] = 32'b000000000001_00000_000_00000_1110011;
-       
    end
 
-   
    // See the table P. 105 in RISC-V manual
    
    // The 10 RISC-V instructions
@@ -149,7 +146,7 @@ module SOC (
    end 
 
    assign leds = isSYSTEM ? 31 : (1 << state);
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
+   assign LEDS = ~leds; // Gatemate E1 LEDs use negative logic
 
 
 `ifdef BENCH
@@ -173,9 +170,7 @@ module SOC (
 	   isStore:  $display("STORE");
 	   isSYSTEM: $display("SYSTEM");
 	 endcase 
-	 if(isSYSTEM) begin
-	    $finish();
-	 end
+	 if(isSYSTEM) $finish();
       end 
    end
 `endif	      

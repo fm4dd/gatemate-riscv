@@ -17,12 +17,12 @@ all: firmware.hex
 # -------------------------------------------------------------------------
 RAMSIZE=6144
 
-firmware.hex: blinker.bram.elf
+firmware.hex: hello.bram.elf
 	$(FW_WORDS_DIR)/firmware_words $< -ram $(RAMSIZE) -max_addr $(RAMSIZE) -out $@
 
 # Step-2: Link the object files into a RISCV elf binary
 # -----------------------------------------------------
-blinker.bram.elf: %.o
+hello.bram.elf: %.o
 	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-ld start.o putchar.o hello.o $(LDFLAGS) -o $@
 
 # Step-1: build object files (.o) from assembler source files (.S) 

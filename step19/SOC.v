@@ -31,9 +31,9 @@ module Memory (
    reg [31:0] MEM [0:1535]; // 1536 4-bytes words = 6 Kb of RAM in total
 
 `ifdef BENCH
-   localparam slow_bit=2;
+   localparam slow_bit=12;
 `else
-   localparam slow_bit=17;
+   localparam slow_bit=19;
 `endif
 
    // Memory-mapped IO in IO page, 1-hot addressing in word address.   
@@ -60,8 +60,8 @@ module Memory (
    `define dx ((`xmax-`xmin)/80)
    `define dy ((`ymax-`ymin)/80)
    `define norm_max (4 << `mandel_shift)
-   
-   // 1. Declare integers without values at the module level
+
+    // 1. Declare integers without values at the module level
    integer mandelstart_;
    integer blink_;
    integer loop_y_;
@@ -83,7 +83,7 @@ module Memory (
    // Zrr,2Zri,Zii: s6,s7,s8
    // cnt: s10
    // 128: s11
-   
+
    initial begin
       // 2. Explicitly assign values at the very start of the initial block
       mandelstart_ = 12;
@@ -94,7 +94,7 @@ module Memory (
       exit_Z_      = 188;
       wait_        = 264;
       wait_L0_     = 272;
-      putc_        = 284; 
+      putc_        = 284;
       putc_L0_     = 292;
       mulsi3_      = 308;
       mulsi3_L0_   = 316;
@@ -336,9 +336,7 @@ module Processor (
    /* verilator lint_on WIDTH */
 
    wire [31:0] leftshift = flip32(shifter);
-   
-
-   
+ 
    // ADD/SUB/ADDI: 
    // funct7[5] is 1 for SUB and 0 for ADD. We need also to test instr[5]
    // to make the difference with ADDI
@@ -373,7 +371,6 @@ module Processor (
 	default: takeBranch = 1'b0;
       endcase
    end
-   
 
    // Address computation
    // An adder used to compute branch address, JAL address and AUIPC.
@@ -390,16 +387,24 @@ module Processor (
 
    wire [31:0] loadstore_addr = rs1 + (isStore ? Simm : Iimm);
    
+   // The state machine
+   localparam FETCH_INSTR = 0;
+   localparam WAIT_INSTR  = 1;
+   localparam FETCH_REGS  = 2;
+   localparam EXECUTE     = 3;
+   localparam LOAD        = 4;
+   localparam WAIT_DATA   = 5;
+   localparam STORE       = 6;
+   reg [2:0] state = FETCH_INSTR;
+
    // Load
    // All memory accesses are aligned on 32 bits boundary. For this
    // reason, we need some circuitry that does unaligned halfword
    // and byte load/store, based on:
    // - funct3[1:0]:  00->byte 01->halfword 10->word
    // - mem_addr[1:0]: indicates which byte/halfword is accessed
-
    wire mem_byteAccess     = funct3[1:0] == 2'b00;
    wire mem_halfwordAccess = funct3[1:0] == 2'b01;
-
 
    wire [15:0] LOAD_halfword =
 	       loadstore_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
@@ -417,16 +422,9 @@ module Processor (
      mem_halfwordAccess ? {{16{LOAD_sign}}, LOAD_halfword} :
                           mem_rdata ;
 
-   // register write back
-   // ------------------------------------------------------------------------
-   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
-			      isLUI         ? Uimm      :
-			      isAUIPC       ? PCplusImm :
-			      isLoad        ? LOAD_data :
-			                      aluOut;
-
    // Store
    // ------------------------------------------------------------------------
+
    assign mem_wdata[ 7: 0] = rs2[7:0];
    assign mem_wdata[15: 8] = loadstore_addr[0] ? rs2[7:0]  : rs2[15: 8];
    assign mem_wdata[23:16] = loadstore_addr[1] ? rs2[7:0]  : rs2[23:16];
@@ -450,16 +448,16 @@ module Processor (
 	            (loadstore_addr[1] ? 4'b1100 : 4'b0011) :
               4'b1111;
    
-   // The state machine
-   localparam FETCH_INSTR = 0;
-   localparam WAIT_INSTR  = 1;
-   localparam FETCH_REGS  = 2;
-   localparam EXECUTE     = 3;
-   localparam LOAD        = 4;
-   localparam WAIT_DATA   = 5;
-   localparam STORE       = 6;
-   reg [2:0] state = FETCH_INSTR;
-   
+   // register write back
+   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
+			      isLUI         ? Uimm      :
+			      isAUIPC       ? PCplusImm :
+			      isLoad        ? LOAD_data :
+			                      aluOut;
+
+   assign writeBackEn = (state==EXECUTE && !isBranch && !isStore) ||
+			(state==WAIT_DATA) ;
+
    always @(posedge clk) begin
       if(!resetn) begin
 	 PC    <= 0;
@@ -507,16 +505,12 @@ module Processor (
       end
    end
 
-   assign writeBackEn = (state==EXECUTE && !isBranch && !isStore) ||
-			(state==WAIT_DATA) ;
-   
    assign mem_addr = (state == WAIT_INSTR || state == FETCH_INSTR) ?
 		     PC : loadstore_addr ;
    assign mem_rstrb = (state == FETCH_INSTR || state == LOAD);
    assign mem_wmask = {4{(state == STORE)}} & STORE_wmask;
    
 endmodule
-
 
 module SOC (
     input  CLK,        // E1 system clock 
@@ -526,14 +520,25 @@ module SOC (
     output TXD         // UART transmit
 );
 
+   // Memory-mapped IO in IO page, 1-hot addressing in word address.   
+   localparam IO_LEDS_bit      = 0;  // W five leds
+   localparam IO_UART_DAT_bit  = 1;  // W data to send (8 bits) 
+   localparam IO_UART_CNTL_bit = 2;  // R status. bit 9: busy sending
+   
    wire clk;
    wire resetn;
-
    wire [31:0] mem_addr;
    wire [31:0] mem_rdata;
    wire mem_rstrb;
    wire [31:0] mem_wdata;
    wire [3:0]  mem_wmask;
+   wire [31:0] RAM_rdata;
+   wire [29:0] mem_wordaddr = mem_addr[31:2];
+   wire isIO  = mem_addr[22];
+   wire isRAM = !isIO;
+   wire mem_wstrb = |mem_wmask;
+   wire uart_valid = isIO & mem_wstrb & mem_wordaddr[IO_UART_DAT_bit];
+   wire uart_ready;
 
    Processor CPU(
       .clk(clk),
@@ -545,12 +550,6 @@ module SOC (
       .mem_wmask(mem_wmask)
    );
    
-   wire [31:0] RAM_rdata;
-   wire [29:0] mem_wordaddr = mem_addr[31:2];
-   wire isIO  = mem_addr[22];
-   wire isRAM = !isIO;
-   wire mem_wstrb = |mem_wmask;
-   
    Memory RAM(
       .clk(clk),
       .mem_addr(mem_addr),
@@ -560,24 +559,15 @@ module SOC (
       .mem_wmask({4{isRAM}}&mem_wmask)
    );
 
-
-   // Memory-mapped IO in IO page, 1-hot addressing in word address.   
-   localparam IO_LEDS_bit      = 0;  // W five leds
-   localparam IO_UART_DAT_bit  = 1;  // W data to send (8 bits) 
-   localparam IO_UART_CNTL_bit = 2;  // R status. bit 9: busy sending
-   
-   reg [4:0] leds;
+   // Plug the leds to MEM memwdata to see its contents
+   reg [7:0] leds;
    always @(posedge clk) begin
       if(isIO & mem_wstrb & mem_wordaddr[IO_LEDS_bit]) begin
-	 leds <= mem_wdata[4:0];
-//	 $display("Value sent to LEDS: %b %d %d",mem_wdata,mem_wdata,$signed(mem_wdata));
+	 leds <= mem_wdata[7:0]; // limit mem_wdata to 8 bits
       end
    end
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
+   assign LEDS = ~leds;
 
-   wire uart_valid = isIO & mem_wstrb & mem_wordaddr[IO_UART_DAT_bit];
-   wire uart_ready;
-   
    corescore_emitter_uart #(
       .clk_freq_hz(`CPU_FREQ*1000000),
       .baud_rate(1000000)			    
@@ -594,9 +584,7 @@ module SOC (
 	       mem_wordaddr[IO_UART_CNTL_bit] ? { 22'b0, !uart_ready, 9'b0}
 	                                      : 32'b0;
    
-   assign mem_rdata = isRAM ? RAM_rdata :
-	                      IO_rdata ;
-   
+   assign mem_rdata = isRAM ? RAM_rdata : IO_rdata;
    
 `ifdef BENCH
    always @(posedge clk) begin

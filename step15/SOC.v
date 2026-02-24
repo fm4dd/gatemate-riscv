@@ -5,7 +5,7 @@
 //
 // Notes:
 // Step 15 adding LOAD instructions to the RISC-V CPU.
-// The 5 LEDs show the state.
+// The 8 LEDs show the state.
 //
 // Code is tested on a Gatemate E1 eval board v3.1B
 // E1 onboard user button SW3 is assigned to RESET.
@@ -25,7 +25,7 @@ module Memory (
    reg [31:0] MEM [0:255]; 
 
 `ifdef BENCH
-   localparam slow_bit=13;
+   localparam slow_bit=12;
 `else
    localparam slow_bit=19;
 `endif
@@ -70,7 +70,6 @@ module Memory (
       end
    end
 endmodule
-
 
 module Processor (
     input 	      clk,
@@ -165,8 +164,6 @@ module Processor (
 
    wire [31:0] leftshift = flip32(shifter);
    
-
-   
    // ADD/SUB/ADDI: 
    // funct7[5] is 1 for SUB and 0 for ADD. We need also to test instr[5]
    // to make the difference with ADDI
@@ -202,7 +199,6 @@ module Processor (
       endcase
    end
    
-
    // Address computation
    // An adder used to compute branch address, JAL address and AUIPC.
    // branch->PC+Bimm    AUIPC->PC+Uimm    JAL->PC+Jimm
@@ -212,23 +208,20 @@ module Processor (
 				             Bimm[31:0] );
    wire [31:0] PCplus4 = PC+4;
    
-   // register write back
-   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
-			      isLUI         ? Uimm      :
-			      isAUIPC       ? PCplusImm :
-			      isLoad        ? LOAD_data :
-			                      aluOut;
-
-                                        // this one just for display ---.
-                                        //                              v
-   assign writeBackEn = (state==EXECUTE && !isBranch && !isStore && !isLoad) ||
-			(state==WAIT_DATA) ;
-   
    wire [31:0] nextPC = ((isBranch && takeBranch) || isJAL) ? PCplusImm   :
 	                                  isJALR   ? {aluPlus[31:1],1'b0} :
 	                                             PCplus4;
 
    wire [31:0] loadstore_addr = rs1 + Iimm;
+   
+   // The state machine
+   localparam FETCH_INSTR = 0;
+   localparam WAIT_INSTR  = 1;
+   localparam FETCH_REGS  = 2;
+   localparam EXECUTE     = 3;
+   localparam LOAD        = 4;
+   localparam WAIT_DATA   = 5;
+   reg [2:0] state = FETCH_INSTR;
    
    // Load
    // All memory accesses are aligned on 32 bits boundary. For this
@@ -236,10 +229,8 @@ module Processor (
    // and byte load/store, based on:
    // - funct3[1:0]:  00->byte 01->halfword 10->word
    // - mem_addr[1:0]: indicates which byte/halfword is accessed
-
    wire mem_byteAccess     = funct3[1:0] == 2'b00;
    wire mem_halfwordAccess = funct3[1:0] == 2'b01;
-
 
    wire [15:0] LOAD_halfword =
 	       loadstore_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
@@ -257,15 +248,17 @@ module Processor (
      mem_halfwordAccess ? {{16{LOAD_sign}}, LOAD_halfword} :
                           mem_rdata ;
 
-   
-   // The state machine
-   localparam FETCH_INSTR = 0;
-   localparam WAIT_INSTR  = 1;
-   localparam FETCH_REGS  = 2;
-   localparam EXECUTE     = 3;
-   localparam LOAD        = 4;
-   localparam WAIT_DATA   = 5;
-   reg [2:0] state = FETCH_INSTR;
+   // register write back
+   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
+			      isLUI         ? Uimm      :
+			      isAUIPC       ? PCplusImm :
+			      isLoad        ? LOAD_data :
+			                      aluOut;
+
+                                        // this one just for display ---.
+                                        //                              v
+   assign writeBackEn = (state==EXECUTE && !isBranch && !isStore && !isLoad) ||
+			(state==WAIT_DATA) ;
    
    always @(posedge clk) begin
       if(!resetn) begin
@@ -318,7 +311,6 @@ module Processor (
    
 endmodule
 
-
 module SOC (
     input  CLK,        // E1 system clock 
     input  RESET,      // E1 user button
@@ -329,11 +321,10 @@ module SOC (
 
    wire clk;
    wire resetn;
-
-   // Plug the leds to CPU output register x10 to see its contents
-   wire [4:0] leds;
-   assign leds = x10[4:0];
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
+   wire [31:0] mem_addr;
+   wire [31:0] mem_rdata;
+   wire mem_rstrb;
+   wire [31:0] x10;
 
    Memory RAM(
       .clk(clk),
@@ -341,11 +332,6 @@ module SOC (
       .mem_rdata(mem_rdata),
       .mem_rstrb(mem_rstrb)
    );
-
-   wire [31:0] mem_addr;
-   wire [31:0] mem_rdata;
-   wire mem_rstrb;
-   wire [31:0] x10;
 
    Processor CPU(
       .clk(clk),
@@ -355,6 +341,11 @@ module SOC (
       .mem_rstrb(mem_rstrb),
       .x10(x10)		 
    );
+
+   // Plug the leds to CPU output register x10 to see its contents
+   wire [7:0] leds;
+   assign leds = x10[7:0];
+   assign LEDS = ~leds;
 
    // Gearbox and reset circuitry.
    Clockworks CW(

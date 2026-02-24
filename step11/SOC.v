@@ -5,7 +5,7 @@
 //
 // Notes:
 // Step 11 Separate memory on the RISC-V CPU.
-// The 5 LEDs show the state.
+// The 8 LEDs show the state.
 //
 // Code is tested on a Gatemate E1 eval board v3.1B
 // E1 onboard user button SW3 is assigned to RESET.
@@ -27,12 +27,12 @@ module Memory (
 `include "../rtl-shared/riscv_assembly.v"
    integer L0_=8;
    initial begin
-                  ADD(x1,x0,x0);      
-                  ADDI(x2,x0,31);
-      Label(L0_); 
-                  ADDI(x1,x1,1); 
-                  BNE(x1, x2, LabelRef(L0_));
-                  EBREAK();
+      ADD(x1,x0,x0);      
+      ADDI(x2,x0,31);
+   Label(L0_); 
+      ADDI(x1,x1,1); 
+      BNE(x1, x2, LabelRef(L0_));
+      EBREAK();
       endASM();
    end
 
@@ -204,9 +204,6 @@ module Processor (
 		 PC <= nextPC;
 	      end
 	      state <= FETCH_INSTR;
-`ifdef BENCH      
-	      if(isSYSTEM) $finish();
-`endif      
 	   end
 	 endcase 
       end
@@ -236,9 +233,7 @@ module Processor (
 	   isStore:  $display("STORE");
 	   isSYSTEM: $display("SYSTEM");
 	 endcase 
-	 if(isSYSTEM) begin
-	    $finish();
-	 end
+	 if(isSYSTEM) $finish();
       end 
    end
 `endif	      
@@ -256,11 +251,10 @@ module SOC (
 
    wire    clk;
    wire    resetn;
-
-   // Plug the leds to CPU output register x1 to see its contents
-   wire [4:0] leds;
-   assign leds = x1[4:0];
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
+   wire [31:0] mem_addr;
+   wire [31:0] mem_rdata;
+   wire mem_rstrb;
+   wire [31:0] x1;
 
    Memory RAM(
       .clk(clk),
@@ -268,11 +262,6 @@ module SOC (
       .mem_rdata(mem_rdata),
       .mem_rstrb(mem_rstrb)
    );
-
-   wire [31:0] mem_addr;
-   wire [31:0] mem_rdata;
-   wire mem_rstrb;
-   wire [31:0] x1;
 
    Processor CPU(
       .clk(clk),
@@ -282,6 +271,11 @@ module SOC (
       .mem_rstrb(mem_rstrb),
       .x1(x1)		 
    );
+
+   // Plug the leds to CPU output register x1 to see its contents
+   wire [7:0] leds;
+   assign leds = x1[7:0]; // got only 8 leds, limit to 8 bits of x1
+   assign LEDS = ~leds;
 
    // Gearbox and reset circuitry.
    Clockworks #(

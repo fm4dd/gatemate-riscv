@@ -5,7 +5,7 @@
 //
 // Notes:
 // Step 16 adding STORE instructions to the RISC-V CPU.
-// The 5 LEDs show the state.
+// The 8 LEDs show the state.
 //
 // Code is tested on a Gatemate E1 eval board v3.1B
 // E1 onboard user button SW3 is assigned to RESET.
@@ -27,9 +27,9 @@ module Memory (
    reg [31:0] MEM [0:255]; 
 
 `ifdef BENCH
-   localparam slow_bit=11;
+   localparam slow_bit=12;
 `else
-   localparam slow_bit=17;
+   localparam slow_bit=19;
 `endif
    
 `include "../rtl-shared/riscv_assembly.v"
@@ -92,7 +92,6 @@ module Memory (
       if(mem_wmask[3]) MEM[word_addr][31:24] <= mem_wdata[31:24];	 
    end
 endmodule
-
 
 module Processor (
     input 	      clk,
@@ -188,9 +187,7 @@ module Processor (
    /* verilator lint_on WIDTH */
 
    wire [31:0] leftshift = flip32(shifter);
-   
-
-   
+ 
    // ADD/SUB/ADDI: 
    // funct7[5] is 1 for SUB and 0 for ADD. We need also to test instr[5]
    // to make the difference with ADDI
@@ -226,7 +223,6 @@ module Processor (
       endcase
    end
    
-
    // Address computation
    // An adder used to compute branch address, JAL address and AUIPC.
    // branch->PC+Bimm    AUIPC->PC+Uimm    JAL->PC+Jimm
@@ -242,30 +238,24 @@ module Processor (
 
    wire [31:0] loadstore_addr = rs1 + (isStore ? Simm : Iimm);
 
+   // The state machine
+   localparam FETCH_INSTR = 0;
+   localparam WAIT_INSTR  = 1;
+   localparam FETCH_REGS  = 2;
+   localparam EXECUTE     = 3;
+   localparam LOAD        = 4;
+   localparam WAIT_DATA   = 5;
+   localparam STORE       = 6;
+   reg [2:0] state = FETCH_INSTR;
 
-   // register write back
-   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
-			      isLUI         ? Uimm      :
-			      isAUIPC       ? PCplusImm :
-			      isLoad        ? LOAD_data :
-			                      aluOut;
-
-                                        // this one just for display ---.
-                                        //                              v
-   assign writeBackEn = (state==EXECUTE && !isBranch && !isStore && !isLoad) ||
-			(state==WAIT_DATA) ;
-   
-   
    // Load
    // All memory accesses are aligned on 32 bits boundary. For this
    // reason, we need some circuitry that does unaligned halfword
    // and byte load/store, based on:
    // - funct3[1:0]:  00->byte 01->halfword 10->word
    // - mem_addr[1:0]: indicates which byte/halfword is accessed
-
    wire mem_byteAccess     = funct3[1:0] == 2'b00;
    wire mem_halfwordAccess = funct3[1:0] == 2'b01;
-
 
    wire [15:0] LOAD_halfword =
 	       loadstore_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
@@ -309,17 +299,17 @@ module Processor (
 	            (loadstore_addr[1] ? 4'b1100 : 4'b0011) :
               4'b1111;
 
-   
-   
-   // The state machine
-   localparam FETCH_INSTR = 0;
-   localparam WAIT_INSTR  = 1;
-   localparam FETCH_REGS  = 2;
-   localparam EXECUTE     = 3;
-   localparam LOAD        = 4;
-   localparam WAIT_DATA   = 5;
-   localparam STORE       = 6;
-   reg [2:0] state = FETCH_INSTR;
+   // register write back
+   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
+			      isLUI         ? Uimm      :
+			      isAUIPC       ? PCplusImm :
+			      isLoad        ? LOAD_data :
+			                      aluOut;
+
+                                        // this one just for display ---.
+                                        //                              v
+   assign writeBackEn = (state==EXECUTE && !isBranch && !isStore && !isLoad) ||
+			(state==WAIT_DATA) ;
    
    always @(posedge clk) begin
       if(!resetn) begin
@@ -371,14 +361,12 @@ module Processor (
       end
    end
 
-   
    assign mem_addr = (state == WAIT_INSTR || state == FETCH_INSTR) ?
 		     PC : loadstore_addr ;
    assign mem_rstrb = (state == FETCH_INSTR || state == LOAD);
    assign mem_wmask = {4{(state == STORE)}} & STORE_wmask;
    
 endmodule
-
 
 module SOC (
     input  CLK,        // E1 system clock 
@@ -397,11 +385,6 @@ module SOC (
    wire [31:0] mem_wdata;
    wire [3:0]  mem_wmask;
 
-   // Plug the leds to CPU output register x10 to see its contents
-   wire [4:0] leds;
-   assign leds = x10[4:0];
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
-   
    Memory RAM(
       .clk(clk),
       .mem_addr(mem_addr),
@@ -424,6 +407,10 @@ module SOC (
       .x10(x10)		 
    );
 
+   // Plug the leds to CPU output register x10 to see its contents
+   wire [7:0] leds;
+   assign leds = x10[7:0];
+   assign LEDS = ~leds;
 
    // Gearbox and reset circuitry.
    Clockworks CW(

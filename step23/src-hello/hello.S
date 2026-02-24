@@ -23,6 +23,6 @@ putstring:
 	addi sp,sp,4 # restore sp
 	ret
 
-.section .data
+.section .rodata
 hello:
 	.asciz "Gatemate E1 RISC-V: Hello World, running from Flash!\n"

@@ -5,6 +5,26 @@
 This folder is step07 of the popular FPGA tutorial ["From Blinker to RISCV"](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV) by BrunoLevy.
 
 Step07 implements the same small CPU test program as we had in the previous step06, but this time its written as a Verilog assembly program into the top Verlog module, which is much easier to read.
+
+step06 test program:
+```verilog
+   initial begin
+      PC = 0;
+      MEM[0]  = 32'b0000000_00000_00000_000_00001_0110011; // add x1, x0, x0
+      MEM[1]  = 32'b000000000001_00001_000_00001_0010011;  // addi x1, x1, 1
+      MEM[2]  = 32'b000000000001_00001_000_00001_0010011;  // addi x1, x1, 1
+      MEM[3]  = 32'b000000000001_00001_000_00001_0010011;  // addi x1, x1, 1
+      MEM[4]  = 32'b000000000001_00001_000_00001_0010011;  // addi x1, x1, 1
+      MEM[5]  = 32'b0000000_00000_00001_000_00010_0110011; // add x2, x1, x0
+      MEM[6]  = 32'b0000000_00010_00001_000_00011_0110011; // add x3, x1, x2
+      MEM[7]  = 32'b0000000_00011_00011_101_00011_0010011; // srli x3, x3, 3
+      MEM[8]  = 32'b0000000_11111_00011_001_00011_0010011; // slli x3, x3, 31
+      MEM[9]  = 32'b0100000_00101_00011_101_00011_0010011; // srai x3, x3, 5
+      MEM[10] = 32'b0000000_11010_00011_101_00001_0010011; // srli x1, x3, 26
+      MEM[11] = 32'b000000000001_00000_000_00000_1110011;  // ebreak
+   end
+```
+step07 test program:
 ```verilog
 `include "../rtl-shared/riscv_assembly.v"
 
@@ -26,55 +46,45 @@ Step07 implements the same small CPU test program as we had in the previous step
    end
 ```
 
-The CPU executes a small test program. The board LED's show the result of the ALU on the LEDs.
+The CPU executes the small assembly test program. Same as in step06, the board LED's show the result of the ALU.
 
 ### Build FPGA Bitstream
 ```
-step07$ make
-/home/fm/cc-toolchain-linux/bin/yosys/yosys -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -vlog SOC_synth.v'
- /----------------------------------------------------------------------------\
- |                                                                            |
- |  yosys -- Yosys Open SYnthesis Suite                                       |
- |                                                                            |
- |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
-...
-=== SOC ===
-
-   Number of wires:                323
-   Number of wire bits:           1908
-   Number of public wires:          34
-   Number of public wire bits:     556
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                675
-     CC_ADDF                        94
-     CC_BRAM_20K                     3
-     CC_BUFG                         2
-     CC_DFF                         37
-     CC_IBUF                         3
-     CC_LUT1                        37
-     CC_LUT2                        54
-     CC_LUT3                       256
-     CC_LUT4                       150
-     CC_MX4                         30
-     CC_OBUF                         9
-...
-End of script. Logfile hash: cd79047eea, CPU: user 0.18s system 0.70s, MEM: 27.95 MB peak
-Yosys 0.29+42 (git sha1 2004a9ff4, g++ 12.2.1 -Os)
-Time spent: 27% 1x abc (0 sec), 14% 30x opt_expr (0 sec), ...
+$ make
+/home/fm/oss-cad-suite/bin/yosys -ql log/synth.log -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -luttree -nomx8 -vlog net/SOC_synth.v; write_json net/SOC_synth.json'
 test -e ../gatemate-e1.ccf || exit
-/home/fm/cc-toolchain-linux/bin/p_r/p_r -i SOC_synth.v -o SOC -ccf ../gatemate-e1.ccf +uCIO > SOC_pr.log
+/home/fm/oss-cad-suite/bin/nextpnr-himbaechel --device=CCGM1A1 --json net/SOC_synth.json --write net/SOC_impl.v -o out=net/SOC_impl.txt -o ccf=../gatemate-e1.ccf --router router2 > log/impl.log
+Info: Using uarch 'gatemate' for device 'CCGM1A1'
+Info: Using timing mode 'WORST'
+Info: Using operation mode 'SPEED'
+...
+Info: Device utilisation:
+Info: 	            USR_RSTN:       0/      1     0%
+Info: 	            CPE_COMP:       0/  20480     0%
+Info: 	         CPE_CPLINES:       4/  20480     0%
+Info: 	               IOSEL:      12/    162     7%
+Info: 	                GPIO:      12/    162     7%
+Info: 	               CLKIN:       1/      1   100%
+Info: 	              GLBOUT:       1/      1   100%
+Info: 	                 PLL:       0/      4     0%
+Info: 	            CFG_CTRL:       0/      1     0%
+Info: 	              SERDES:       0/      1     0%
+Info: 	              CPE_LT:    1017/  40960     2%
+Info: 	              CPE_FF:      40/  40960     0%
+Info: 	           CPE_RAMIO:     242/  40960     0%
+Info: 	            RAM_HALF:       3/     64     4%
+...
+Info: Program finished normally.
+/home/fm/oss-cad-suite/bin/gmpack --input net/SOC_impl.txt --bit SOC.bit
 ```
 ### Simulation
 ```
-step07$ make test
+$ make test
 Running testbench simulation
 test ! -e SOC.tb || rm SOC.tb
 test ! -e SOC.vcd || rm SOC.vcd
-/usr/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
-/usr/bin/vvp SOC.tb
-LEDS = 111xxxxx
+/home/fm/oss-cad-suite/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
+/home/fm/oss-cad-suite/bin/vvp SOC.tb
 ALUreg rd= 0 rs1= 0 rs2= 0 funct3=000
 ALUreg rd= 1 rs1= 0 rs2= 0 funct3=000
 x1 <= 00000000000000000000000000000000
@@ -102,32 +112,22 @@ ALUimm rd= 3 rs1= 3 imm=1029 funct3=101
 x3 <= 11111100000000000000000000000000
 ALUimm rd= 1 rs1= 3 imm=26 funct3=101
 x1 <= 00000000000000000000000000111111
-LEDS = 11100000
+LEDS = 11000000
 SYSTEM
+SOC.v:192: $finish called at 19660799 (1s)
 ```
 
 ### Board Programming
 ```
-step07$ make prog
+$ make prog
 Programming E1 SPI Config:
-/home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader -b gatemate_evb_spi SOC_00.cfg
-Jtag frequency : requested 6.00MHz   -> real 6.00MHz
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-00
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-flash chip unknown: use basic protection detection
+/home/fm/oss-cad-suite/bin/openFPGALoader  -b gatemate_evb_spi SOC.bit
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz   
+JEDEC ID: 0xc22817
+Detected: Macronix MX25R6435F 128 sectors size: 64Mb
+00000000 00000000 00000000 00
+start addr: 00000000, end_addr: 00020000
 Erasing: [==================================================] 100.00%
 Done
 Writing: [==================================================] 100.00%

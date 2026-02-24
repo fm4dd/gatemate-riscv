@@ -5,6 +5,21 @@
 This folder is step04 of the popular FPGA tutorial ["From Blinker to RISCV"](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV) by BrunoLevy.
 
 Step04 implements the simplest RiSC-V instruction set architecture (ISA) called RV32I (32 bits base integer instruction set). The RISC-V instruction set is modular, and below are the core instructions. For more information, see [Episode II: the RV32I instruction set](https://github.com/BrunoLevy/learn-fpga/blob/master/FemtoRV/TUTORIALS/DESIGN/FemtoRV32_II.md)
+
+The RV32I (RISC-V 32-bit integer only) base instruction set has only 40 instructions. These are the instructions created in step04:
+| # | Instruction | Syntax (Example) | Description |
+| :--- | :--- | :--- | :--- |
+| **01** | `ALUreg` | `add rd, rs1, rs2` | Performs arithmetic/logical operations between two registers. |
+| **02** | `ALUimm` | `addi rd, rs1, imm` | Performs arithmetic/logical operations between a register and a constant. |
+| **03** | `BRANCH` | `beq rs1, rs2, label` | Conditional jump to a label if the comparison between two registers is true. |
+| **04** | `JAL` | `jal rd, label` | **Jump and Link**: A direct jump to a label, saving the return address in `rd`. |
+| **05** | `JALR` | `jalr rd, offset(rs1)` | **Jump and Link Register**: An indirect jump to an address in a register. |
+| **06** | `AUIPC` | `auipc rd, imm` | **Add Upper Immediate to PC**: Builds a PC-relative address for position-independent code. |
+| **07** | `LUI` | `lui rd, imm` | **Load Upper Immediate**: Loads a 20-bit immediate into the upper bits of a register. |
+| **08** | `LOAD` | `lw rd, offset(rs1)` | Loads a value from a memory address into a destination register. |
+| **09** | `STORE` | `sw rs2, offset(rs1)` | Saves a value from a register into a specific memory address. |
+| **10** | `SYSTEM` | `ecall` / `ebreak` | Used to call environment services or return control to a debugger. |
+
 ```verilog
 module SOC (
     input  CLK,        // E1 system clock
@@ -20,7 +35,7 @@ module SOC (
    reg [31:0] MEM [0:255];
    reg [31:0] PC;       // program counter
    reg [31:0] instr;    // current instruction
-   wire [4:0] leds;
+   wire [7:0] leds;
 
    initial begin
       PC = 0;
@@ -94,13 +109,20 @@ module SOC (
 	     instr <= MEM[PC];
 	     PC <= PC+1;
       end
-`ifdef BENCH
-      if(isSYSTEM) $finish();
-`endif
    end
 
-   assign leds = isSYSTEM ? 31 : {PC[0],isALUreg,isALUimm,isStore,isLoad};
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
+   assign leds = isSYSTEM ? 8'b11111111 : { // all LED on ends the diagnostic pattern
+       PC[0],    // LED 7 (Blinks as PC increments)
+       isBranch, // LED 6
+       isJAL,    // LED 5
+       isJALR,   // LED 4
+       isALUreg, // LED 3
+       isALUimm, // LED 2
+       isStore,  // LED 1
+       isLoad    // LED 0
+   };
+
+   assign LEDS = ~leds; // Gatemate E1 LEDs use negative logic
 
 `ifdef BENCH
    always @(posedge clk) begin
@@ -119,6 +141,7 @@ module SOC (
 	     isStore:  $display("STORE");
          isSYSTEM: $display("SYSTEM");
       endcase
+      if(isSYSTEM) $finish();
    end
 `endif
 
@@ -136,53 +159,46 @@ module SOC (
 endmodule
 
 ```
-The LED's now show the bit pattern of a light moving up, followed by the next light until all are on, then the light pattern reverses until all are off again, cycling over the five LEDs.
+This step initializes the memory with a few RISC-V instructions and see whether we can recognize them by lighting a different LED depending on the instruction. The LED's show the bit pattern of a light moving up through the instructions until all are on when SYSTEM is reached.
 
 ### Build FPGA Bitstream
 ```
-step04$ make
-/home/fm/cc-toolchain-linux/bin/yosys/yosys -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -vlog SOC_synth.v'
- /----------------------------------------------------------------------------\
- |                                                                            |
- |  yosys -- Yosys Open SYnthesis Suite                                       |
- |                                                                            |
- |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
-...
-=== SOC ===
-
-   Number of wires:                 50
-   Number of wire bits:            491
-   Number of public wires:          23
-   Number of public wire bits:     288
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                 90
-     CC_ADDF                        30
-     CC_BRAM_20K                     1
-     CC_BUFG                         2
-     CC_DFF                         31
-     CC_IBUF                         3
-     CC_LUT2                         1
-     CC_LUT3                         1
-     CC_LUT4                        12
-     CC_OBUF                         9
-...
-End of script. Logfile hash: 04e9818ed1, CPU: user 0.36s system 0.13s, MEM: 26.19 MB peak
-Yosys 0.29+42 (git sha1 2004a9ff4, g++ 12.2.1 -Os)
-Time spent: 39% 1x abc (0 sec), 20% 15x read_verilog (0 sec), ...
+$ make
+/home/fm/oss-cad-suite/bin/yosys -ql log/synth.log -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -luttree -nomx8 -vlog net/SOC_synth.v; write_json net/SOC_synth.json'
+Warning: Resizing cell port SOC.MEM.0.0.A_DO from 10 bits to 20 bits.
 test -e ../gatemate-e1.ccf || exit
-/home/fm/cc-toolchain-linux/bin/p_r/p_r -i SOC_synth.v -o SOC -ccf ../gatemate-e1.ccf +uCIO > SOC_pr.log
-
+/home/fm/oss-cad-suite/bin/nextpnr-himbaechel --device=CCGM1A1 --json net/SOC_synth.json --write net/SOC_impl.v -o out=net/SOC_impl.txt -o ccf=../gatemate-e1.ccf --router router2 > log/impl.log
+Info: Using uarch 'gatemate' for device 'CCGM1A1'
+Info: Using timing mode 'WORST'
+Info: Using operation mode 'SPEED'
+...
+Info: Device utilisation:
+Info: 	            USR_RSTN:       0/      1     0%
+Info: 	            CPE_COMP:       0/  20480     0%
+Info: 	         CPE_CPLINES:       2/  20480     0%
+Info: 	               IOSEL:      12/    162     7%
+Info: 	                GPIO:      12/    162     7%
+Info: 	               CLKIN:       1/      1   100%
+Info: 	              GLBOUT:       1/      1   100%
+Info: 	                 PLL:       0/      4     0%
+Info: 	            CFG_CTRL:       0/      1     0%
+Info: 	              SERDES:       0/      1     0%
+Info: 	              CPE_LT:      85/  40960     0%
+Info: 	              CPE_FF:      31/  40960     0%
+Info: 	           CPE_RAMIO:      35/  40960     0%
+Info: 	            RAM_HALF:       1/     64     1%
+...
+Info: Program finished normally.
+/home/fm/oss-cad-suite/bin/gmpack --input net/SOC_impl.txt --bit SOC.bit
 ```
 ### Simulation
 ```
-step04$ make test
+$ make test
 Running testbench simulation
 test ! -e SOC.tb || rm SOC.tb
 test ! -e SOC.vcd || rm SOC.vcd
-/usr/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
-/usr/bin/vvp SOC.tb
+/home/fm/oss-cad-suite/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
+t/home/fm/oss-cad-suite/bin/vvp SOC.tb
 LEDS = 11110111
 PC=0
 ALUreg rd= 0 rs1= 0 rs2= 0 funct3=000
@@ -210,30 +226,20 @@ STORE
 LEDS = 11100000
 PC=8
 SYSTEM
+SOC.v:106: $finish called at 4456447 (1s)
 ```
 
 ### Board Programming
 ```
-step04$ make prog
+$ make prog
 Programming E1 SPI Config:
-/home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader -b gatemate_evb_spi SOC_00.cfg
-Jtag frequency : requested 6.00MHz   -> real 6.00MHz
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-00
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-flash chip unknown: use basic protection detection
+/home/fm/oss-cad-suite/bin/openFPGALoader  -b gatemate_evb_spi SOC.bit
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz   
+JEDEC ID: 0xc22817
+Detected: Macronix MX25R6435F 128 sectors size: 64Mb
+00000000 00000000 00000000 00
+start addr: 00000000, end_addr: 00010000
 Erasing: [==================================================] 100.00%
 Done
 Writing: [==================================================] 100.00%

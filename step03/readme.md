@@ -72,47 +72,43 @@ Inside the always block, the 5-bit wide register variable PC will become the "pr
 
 ### Build FPGA Bitstream
 ```
-step03$ make
-/home/fm/cc-toolchain-linux/bin/yosys/yosys -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -vlog SOC_synth.v'
- /----------------------------------------------------------------------------\
- |                                                                            |
- |  yosys -- Yosys Open SYnthesis Suite                                       |
- |                                                                            |
- |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
-...
-=== SOC ===
-
-   Number of wires:                 39
-   Number of wire bits:            187
-   Number of public wires:          12
-   Number of public wire bits:      44
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                 81
-     CC_ADDF                        27
-     CC_BRAM_20K                     1
-     CC_BUFG                         2
-     CC_DFF                         28
-     CC_IBUF                         3
-     CC_LUT2                         5
-     CC_LUT4                         6
-     CC_OBUF                         9
-...
-End of script. Logfile hash: 889f59fad1, CPU: user 0.16s system 0.05s, MEM: 22.32 MB peak
-Yosys 0.29+42 (git sha1 2004a9ff4, g++ 12.2.1 -Os)
-Time spent: 29% 1x abc (0 sec), 20% 15x read_verilog (0 sec), ...
+$ make
+/home/fm/oss-cad-suite/bin/yosys -ql log/synth.log -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -luttree -nomx8 -vlog net/SOC_synth.v; write_json net/SOC_synth.json'
+Warning: Resizing cell port SOC.MEM.0.0.A_DO from 5 bits to 20 bits.
 test -e ../gatemate-e1.ccf || exit
-/home/fm/cc-toolchain-linux/bin/p_r/p_r -i SOC_synth.v -o SOC -ccf ../gatemate-e1.ccf +uCIO > SOC_pr.log
+/home/fm/oss-cad-suite/bin/nextpnr-himbaechel --device=CCGM1A1 --json net/SOC_synth.json --write net/SOC_impl.v -o out=net/SOC_impl.txt -o ccf=../gatemate-e1.ccf --router router2 > log/impl.log
+Info: Using uarch 'gatemate' for device 'CCGM1A1'
+Info: Using timing mode 'WORST'
+Info: Using operation mode 'SPEED'
+...
+Info: Device utilisation:
+Info: 	            USR_RSTN:       0/      1     0%
+Info: 	            CPE_COMP:       0/  20480     0%
+Info: 	         CPE_CPLINES:       2/  20480     0%
+Info: 	               IOSEL:      12/    162     7%
+Info: 	                GPIO:      12/    162     7%
+Info: 	               CLKIN:       1/      1   100%
+Info: 	              GLBOUT:       1/      1   100%
+Info: 	                 PLL:       0/      4     0%
+Info: 	            CFG_CTRL:       0/      1     0%
+Info: 	              SERDES:       0/      1     0%
+Info: 	              CPE_LT:      66/  40960     0%
+Info: 	              CPE_FF:      28/  40960     0%
+Info: 	           CPE_RAMIO:      33/  40960     0%
+Info: 	            RAM_HALF:       1/     64     1%
+...
+Info: Program finished normally.
+/home/fm/oss-cad-suite/bin/gmpack --input net/SOC_impl.txt --bit SOC.bit
 ```
+Notice the utilisation report `RAM_HALF:       1/     64     1%`, this indicates the allocation of a single CC_BRAM_20K object.
 ### Simulation
 ```
-fm@nuc7fpga:~/fpga/projects/git/gatemate-riscv/step03$ make test
+$ make test
 Running testbench simulation
 test ! -e SOC.tb || rm SOC.tb
 test ! -e SOC.vcd || rm SOC.vcd
-/usr/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
-/usr/bin/vvp SOC.tb
+/home/fm/oss-cad-suite/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
+/home/fm/oss-cad-suite/bin/vvp SOC.tb
 LEDS = 11111111
 LEDS = 11111110
 LEDS = 11111101
@@ -129,30 +125,21 @@ LEDS = 11100011
 LEDS = 11100010
 LEDS = 11100001
 LEDS = 11100000
+SOC_tb.v:26: $finish called at 8126465 (1s)
+
 ```
 Note the simulation stops after 16 patterns when all five LEDs are on. This can be changed in the SOC_tb.v testbench file.
 ### Board Programming
 ```
-step03$ make prog
+$ make prog
 Programming E1 SPI Config:
-/home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader -b gatemate_evb_spi SOC_00.cfg
-Jtag frequency : requested 6.00MHz   -> real 6.00MHz  
-Detail: 
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               : 
-00
-Detail: 
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               : 
-flash chip unknown: use basic protection detection
+/home/fm/oss-cad-suite/bin/openFPGALoader  -b gatemate_evb_spi SOC.bit
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz   
+JEDEC ID: 0xc22817
+Detected: Macronix MX25R6435F 128 sectors size: 64Mb
+00000000 00000000 00000000 00
+start addr: 00000000, end_addr: 00010000
 Erasing: [==================================================] 100.00%
 Done
 Writing: [==================================================] 100.00%

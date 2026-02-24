@@ -5,7 +5,7 @@
 //
 // Notes:
 // Step 6 creates a RISC-V CPU arithmetic logig unit
-// (ALU). 5 LEDS show the state.
+// (ALU). 8 LEDS show the state.
 //
 // Code is tested on a Gatemate E1 eval board v3.1B
 // E1 onboard user button SW3 is assigned to RESET.
@@ -27,8 +27,8 @@ module SOC (
    wire resetn; // internal reset signal, goes low on reset
 
    // Plug the leds on register 1 to see its contents
-   reg [4:0] leds;
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
+   reg [7:0] leds;
+   assign LEDS = ~leds;
    
    reg [31:0] MEM [0:255]; 
    reg [31:0] PC;          // program counter
@@ -69,7 +69,6 @@ module SOC (
       // srli x1, x3, 26
       //                   shamt   rs1  sr  rd   ALUIMM
       MEM[10] = 32'b0000000_11010_00011_101_00001_0010011;
-
       // ebreak
       //                                          SYSTEM
       MEM[11] = 32'b000000000001_00000_000_00000_1110011;
@@ -191,9 +190,6 @@ module SOC (
 		 PC <= PC + 1;
 	      end
 	      state <= FETCH_INSTR;	      
-`ifdef BENCH      
-	      if(isSYSTEM) $finish();
-`endif      
 	   end
 	 endcase 
       end
@@ -220,9 +216,7 @@ module SOC (
 	   isStore:  $display("STORE");
 	   isSYSTEM: $display("SYSTEM");
 	 endcase 
-	 if(isSYSTEM) begin
-	    $finish();
-	 end
+	 if(isSYSTEM) $finish();
       end 
    end
 `endif	      

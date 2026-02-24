@@ -5,7 +5,7 @@
 //
 // Notes:
 // Step 13 std RISC-V subroutines-1 on the RISC-V CPU.
-// The 5 LEDs show the state.
+// The 8 LEDs show the state.
 //
 // Code is tested on a Gatemate E1 eval board v3.1B
 // E1 onboard user button SW3 is assigned to RESET.
@@ -25,12 +25,11 @@ module Memory (
    reg [31:0] MEM [0:255]; 
 
 `ifdef BENCH
-   localparam slow_bit=15;
+   localparam slow_bit=12;
 `else
    localparam slow_bit=19;
 `endif
 
-   
 `include "../rtl-shared/riscv_assembly.v"
    integer L0_   = 4;
    integer wait_ = 20;
@@ -150,7 +149,6 @@ module Processor (
       endcase
    end
 
-
    // The predicate for branch instructions
    reg takeBranch;
    always @(*) begin
@@ -246,11 +244,10 @@ module SOC (
    
    wire clk;
    wire resetn;
-
-   // Plug the leds to CPU output register x10 to see its contents
-   wire [4:0] leds;
-   assign leds = x10[4:0];
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
+   wire [31:0] mem_addr;
+   wire [31:0] mem_rdata;
+   wire mem_rstrb;
+   wire [31:0] x10;
 
    Memory RAM(
       .clk(clk),
@@ -258,11 +255,6 @@ module SOC (
       .mem_rdata(mem_rdata),
       .mem_rstrb(mem_rstrb)
    );
-
-   wire [31:0] mem_addr;
-   wire [31:0] mem_rdata;
-   wire mem_rstrb;
-   wire [31:0] x10;
 
    Processor CPU(
       .clk(clk),
@@ -272,6 +264,11 @@ module SOC (
       .mem_rstrb(mem_rstrb),
       .x10(x10)		 
    );
+
+   // Plug the leds to CPU output register x10 to see its contents
+   wire [7:0] leds;
+   assign leds = x10[7:0];
+   assign LEDS = ~leds;
 
    // Gearbox and reset circuitry.
    Clockworks CW(

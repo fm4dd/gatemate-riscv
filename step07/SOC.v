@@ -5,7 +5,7 @@
 //
 // Notes:
 // Step 7 runs assembly on the RISC-V CPU.
-// The 5 LEDs show the state.
+// The 8 LEDs show the state.
 //
 // Code is tested on a Gatemate E1 eval board v3.1B
 // E1 onboard user button SW3 is assigned to RESET.
@@ -27,8 +27,8 @@ module SOC (
    wire resetn; // internal reset signal, goes low on reset
 
    // Plug the leds on register 1 to see its contents
-   reg [4:0] leds;
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
+   reg [7:0] leds;
+   assign LEDS = ~leds;
    
    reg [31:0] MEM [0:255]; 
    reg [31:0] PC;          // program counter
@@ -167,9 +167,6 @@ module SOC (
 		 PC <= PC + 4;
 	      end
 	      state <= FETCH_INSTR;
-`ifdef BENCH      
-	      if(isSYSTEM) $finish();
-`endif      
 	   end
 	 endcase 
       end
@@ -192,9 +189,7 @@ module SOC (
 	   isStore:  $display("STORE");
 	   isSYSTEM: $display("SYSTEM");
 	 endcase 
-	 if(isSYSTEM) begin
-	    $finish();
-	 end
+	 if(isSYSTEM) $finish();
       end 
    end
 `endif	      

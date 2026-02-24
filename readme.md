@@ -21,9 +21,7 @@ Enjoy!
 
 - [Prerequisites 1](prerequisites-1.md) Getting FGPA build Tools
   - Gatemate E1 board
-  - Cologne Chip toolchain
-  - iVerilog
-  - Verilator
+  - [OSS CAD Suite Toolchain](https://github.com/YosysHQ/oss-cad-suite-build)
 
 #### Basic Verilog Code Blocks
 - [Step01](step01) First blinky - Toolchain and Hardware Verification

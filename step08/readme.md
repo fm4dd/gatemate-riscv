@@ -9,7 +9,6 @@ Step08 implements two jump instructions JAL (jump and link) and JALR (jump and l
 The simple assembly test code below verifies the implementation works.
 ```verilog
 `include "../rtl-shared/riscv_assembly.v"
-
       integer L0_=4;
       initial begin
          ADD(x1,x0,x0);
@@ -21,58 +20,48 @@ The simple assembly test code below verifies the implementation works.
       end
 ```
 
-The CPU executes a small assembly code that implements a 5-bit counter. The board LED's show the counter.
+The CPU executes a small assembly code that implements a counter. The board LED's show the counter.
+It runs as a endless loop, the simulation stops after a few iterations.
 
 ### Build FPGA Bitstream
 
-Note: Because of an [issue](https://github.com/fm4dd/gatemate-riscv/issues/1) with Cologne Chip 'p_r' executable, this step08 uses a local constraints file instead of the global one.
 ```
-step08$ make
-/home/fm/cc-toolchain-linux/bin/yosys/yosys -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -vlog SOC_synth.v'
- /----------------------------------------------------------------------------\
- |                                                                            |
- |  yosys -- Yosys Open SYnthesis Suite                                       |
- |                                                                            |
- |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
+$ make
+/home/fm/oss-cad-suite/bin/yosys -ql log/synth.log -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -luttree -nomx8 -vlog net/SOC_synth.v; write_json net/SOC_synth.json'
+test -e ../gatemate-e1.ccf || exit
+/home/fm/oss-cad-suite/bin/nextpnr-himbaechel --device=CCGM1A1 --json net/SOC_synth.json --write net/SOC_impl.v -o out=net/SOC_impl.txt -o ccf=../gatemate-e1.ccf --router router2 > log/impl.log
+Info: Using uarch 'gatemate' for device 'CCGM1A1'
+Info: Using timing mode 'WORST'
+Info: Using operation mode 'SPEED'
 ...
-=== SOC ===
-
-   Number of wires:                467
-   Number of wire bits:           2917
-   Number of public wires:          38
-   Number of public wire bits:     684
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                956
-     CC_ADDF                       210
-     CC_BRAM_20K                     3
-     CC_BUFG                         2
-     CC_DFF                         61
-     CC_IBUF                         3
-     CC_LUT1                        37
-     CC_LUT2                        36
-     CC_LUT3                       271
-     CC_LUT4                       294
-     CC_MX4                         30
-     CC_OBUF                         9
+Info: Device utilisation:
+Info: 	            USR_RSTN:       0/      1     0%
+Info: 	            CPE_COMP:       0/  20480     0%
+Info: 	         CPE_CPLINES:       6/  20480     0%
+Info: 	               IOSEL:      12/    162     7%
+Info: 	                GPIO:      12/    162     7%
+Info: 	               CLKIN:       1/      1   100%
+Info: 	              GLBOUT:       1/      1   100%
+Info: 	                 PLL:       0/      4     0%
+Info: 	            CFG_CTRL:       0/      1     0%
+Info: 	              SERDES:       0/      1     0%
+Info: 	              CPE_LT:    1298/  40960     3%
+Info: 	              CPE_FF:      64/  40960     0%
+Info: 	           CPE_RAMIO:     254/  40960     0%
+Info: 	            RAM_HALF:       3/     64     4%
 ...
-End of script. Logfile hash: 726018c003, CPU: user 1.04s system 0.17s, MEM: 29.50 MB peak
-Yosys 0.29+42 (git sha1 2004a9ff4, g++ 12.2.1 -Os)
-Time spent: 26% 1x abc (0 sec), 16% 30x opt_expr (0 sec), ...
-test -e gatemate-e1.ccf || exit
-/home/fm/cc-toolchain-linux/bin/p_r/p_r -i SOC_synth.v -o SOC -ccf gatemate-e1.ccf +uCIO > SOC_pr.log
+Info: Program finished normally.
+/home/fm/oss-cad-suite/bin/gmpack --input net/SOC_impl.txt --bit SOC.bit
 ```
 ### Simulation
 ```
-step08$ make test
+$ make test
 Running testbench simulation
 test ! -e SOC.tb || rm SOC.tb
 test ! -e SOC.vcd || rm SOC.vcd
-/usr/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
-/usr/bin/vvp SOC.tb
+/home/fm/oss-cad-suite/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
+/home/fm/oss-cad-suite/bin/vvp SOC.tb
 Label:          4
-LEDS = 111xxxxx
 ALUreg rd= 1 rs1= 0 rs2= 0 funct3=000
 x1 <= 00000000000000000000000000000000
 ALUimm rd= 1 rs1= 1 imm=1 funct3=000
@@ -95,35 +84,28 @@ ALUimm rd= 1 rs1= 1 imm=1 funct3=000
 x1 <= 00000000000000000000000000000101
 LEDS = 11111010
 JAL
-^C** VVP Stop(0) **
-** Flushing output streams.
-** Current simulation time is 48244798 ticks.
-> finish
-** Continue **
+ALUimm rd= 1 rs1= 1 imm=1 funct3=000
+x1 <= 00000000000000000000000000000110
+LEDS = 11111001
+JAL
+ALUimm rd= 1 rs1= 1 imm=1 funct3=000
+x1 <= 00000000000000000000000000000111
+LEDS = 11111000
+Target LED state reached. Ending...
+SOC_tb.v:26: $finish called at 21757952 (1s)
 ```
 
 ### Board Programming
 ```
-step08$ make prog
+$ make prog
 Programming E1 SPI Config:
-/home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader -b gatemate_evb_spi SOC_00.cfg
-Jtag frequency : requested 6.00MHz   -> real 6.00MHz
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-00
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-flash chip unknown: use basic protection detection
+/home/fm/oss-cad-suite/bin/openFPGALoader  -b gatemate_evb_spi SOC.bit
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz   
+JEDEC ID: 0xc22817
+Detected: Macronix MX25R6435F 128 sectors size: 64Mb
+00000000 00000000 00000000 00
+start addr: 00000000, end_addr: 00020000
 Erasing: [==================================================] 100.00%
 Done
 Writing: [==================================================] 100.00%

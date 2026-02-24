@@ -22,21 +22,23 @@ all: firmware.hex
 # -------------------------------------------------------------------------
 RAMSIZE=6144
 
-firmware.hex: ST_NICCC.bram.elf
+firmware.hex: firmware.bram.elf
 	$(FW_WORDS_DIR)/firmware_words $< -ram $(RAMSIZE) -max_addr $(RAMSIZE) -out $@
 
-# Step-2: Link the object files into a RISCV elf binary
+# Step-2: Link the object files into a RISCV elf binary called firmware.bram.elf
+# Note: $(RV32I_LIBGCC) is included to handle integer math the CPU might not have
 # -----------------------------------------------------
-ST_NICCC.bram.elf: %.o
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-ld start.o putchar.o print.o ST_NICCC.o $(RV32I_LIBGCC) $(LDFLAGS) -o $@
+firmware.bram.elf: start.o putchar.o print.o ST_NICCC.o
+	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-ld $^ $(RV32I_LIBGCC) $(LDFLAGS) -o $@
 
-# Step-1: build object files (.o) from assembler source files (.S) 
-# ----------------------------------------------------------------
-%o:
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-as $(ASFLAGS) start.S -o start.o
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-as $(ASFLAGS) putchar.S -o putchar.o
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-gcc $(CFLAGS) -c print.c -o print.o
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-gcc $(CFLAGS) -c ST_NICCC.c -o ST_NICCC.o
+# Step-1: build object files (.o) from source files in
+# assembler (.S) and C (*.c)
+# -----------------------------------------------------
+%.o: %.S
+	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-as $(ASFLAGS) $< -o $@
+
+%.o: %.c
+	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-gcc $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f *.o *.hex *.elf

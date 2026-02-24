@@ -7,7 +7,7 @@
 // Step 22 creates a separate RISC-V app written in 'C',
 // located in the src folder. The app code is loaded
 // into block ram, which requires the hex conversion with
-// firmware_words. 'make' creates the firmware.hex app 
+// firmware_words. 'make' creates the firmware.hex app
 // code before synthesis. We use the $readmemh() function
 // to load the app. Additionally, application data is
 // written into flash, and retrieved as ROM from the
@@ -43,12 +43,14 @@ module Memory (
    
    always @(posedge clk) begin
       if(mem_rstrb) begin
+/* verilator lint_off WIDTH */
          mem_rdata <= MEM[word_addr];
       end
       if(mem_wmask[0]) MEM[word_addr][ 7:0 ] <= mem_wdata[ 7:0 ];
       if(mem_wmask[1]) MEM[word_addr][15:8 ] <= mem_wdata[15:8 ];
       if(mem_wmask[2]) MEM[word_addr][23:16] <= mem_wdata[23:16];
       if(mem_wmask[3]) MEM[word_addr][31:24] <= mem_wdata[31:24];	 
+/* verilator lint_on WIDTH */
    end
 endmodule
 
@@ -56,8 +58,8 @@ module Processor (
     input 	  clk,
     input 	  resetn,
     output [31:0] mem_addr, 
-    input [31:0]  mem_rdata,
-    input         mem_rbusy,		  
+    input [31:0]  mem_rdata, 
+    input         mem_rbusy,
     output 	  mem_rstrb,
     output [31:0] mem_wdata,
     output [3:0]  mem_wmask
@@ -65,7 +67,7 @@ module Processor (
 
    // Internal width for addresses.
    localparam ADDR_WIDTH=24;
-   
+
    reg [ADDR_WIDTH:0] PC=0; // program counter
    reg [31:2] instr;        // current instruction
 
@@ -83,7 +85,7 @@ module Processor (
    wire isStore   =  (instr[6:2] == 5'b01000); // mem[rs1+Simm] <- rs2
    wire isSYSTEM  =  (instr[6:2] == 5'b11100); // special
 
-   // The 5 immediate formats
+  // The 5 immediate formats
    wire [31:0] Uimm={    instr[31],   instr[30:12], {12{1'b0}}};
    wire [31:0] Iimm={{21{instr[31]}}, instr[30:20]};
    /* verilator lint_off UNUSED */ // MSBs of SBJimms are not used by addr adder.
@@ -149,9 +151,7 @@ module Processor (
    /* verilator lint_on WIDTH */
 
    wire [31:0] leftshift = flip32(shifter);
-   
 
-   
    // ADD/SUB/ADDI: 
    // funct7[5] is 1 for SUB and 0 for ADD. We need also to test instr[5]
    // to make the difference with ADDI
@@ -186,41 +186,34 @@ module Processor (
 	default: takeBranch = 1'b0;
       endcase
    end
-   
 
    // Address computation
-
-
-   /* verilator lint_off WIDTH */
-
    // An adder used to compute branch address, JAL address and AUIPC.
    // branch->PC+Bimm    AUIPC->PC+Uimm    JAL->PC+Jimm
    // Equivalent to PCplusImm = PC + (isJAL ? Jimm : isAUIPC ? Uimm : Bimm)
-
    // Note: doing so with ADDR_WIDTH < 32, AUIPC may fail in 
    // some RISC-V compliance tests because one can is supposed to use 
    // it to generate arbitrary 32-bit values (and not only addresses).
-   
+
+   /* verilator lint_off WIDTH */
    wire [ADDR_WIDTH-1:0] PCplusImm = PC + ( instr[3] ? Jimm[31:0] :
-					    instr[4] ? Uimm[31:0] :
-				            Bimm[31:0] );
+                                            instr[4] ? Uimm[31:0] :
+                                            Bimm[31:0] );
    wire [ADDR_WIDTH-1:0] PCplus4 = PC+4;
-   
 
    wire [ADDR_WIDTH-1:0] nextPC = ((isBranch && takeBranch) || isJAL) ? PCplusImm   :
-	                                  isJALR   ? {aluPlus[31:1],1'b0} :
-	                                             PCplus4;
+                                          isJALR   ? {aluPlus[31:1],1'b0} :
+                                                     PCplus4;
 
-   wire [ADDR_WIDTH-1:0] loadstore_addr = rs1 + (isStore ? Simm : Iimm);
-
-
-   // register write back
-   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
-			      isLUI         ? Uimm      :
-			      isAUIPC       ? PCplusImm :
-			      isLoad        ? LOAD_data :
-			                      aluOut;
+   wire [31:0] loadstore_addr = rs1 + (isStore ? Simm : Iimm);
    /* verilator lint_on WIDTH */
+   
+   // The state machine
+   localparam FETCH_INSTR = 0;
+   localparam WAIT_INSTR  = 1;
+   localparam EXECUTE     = 2;
+   localparam WAIT_DATA   = 3;
+   reg [1:0] state = FETCH_INSTR;
    
    // Load
    // All memory accesses are aligned on 32 bits boundary. For this
@@ -228,10 +221,8 @@ module Processor (
    // and byte load/store, based on:
    // - funct3[1:0]:  00->byte 01->halfword 10->word
    // - mem_addr[1:0]: indicates which byte/halfword is accessed
-
    wire mem_byteAccess     = funct3[1:0] == 2'b00;
    wire mem_halfwordAccess = funct3[1:0] == 2'b01;
-
 
    wire [15:0] LOAD_halfword =
 	       loadstore_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
@@ -275,12 +266,17 @@ module Processor (
 	            (loadstore_addr[1] ? 4'b1100 : 4'b0011) :
               4'b1111;
    
-   // The state machine
-   localparam FETCH_INSTR = 0;
-   localparam WAIT_INSTR  = 1;
-   localparam EXECUTE     = 2;
-   localparam WAIT_DATA   = 3;
-   reg [1:0] state = FETCH_INSTR;
+   // register write back
+   /* verilator lint_off WIDTH */
+   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
+			      isLUI         ? Uimm      :
+			      isAUIPC       ? PCplusImm :
+			      isLoad        ? LOAD_data :
+			                      aluOut;
+   /* verilator lint_on WIDTH */
+
+   assign writeBackEn = (state==EXECUTE && !isBranch && !isStore) ||
+			(state==WAIT_DATA) ;
    
    always @(posedge clk) begin
       if(!resetn) begin
@@ -302,37 +298,29 @@ module Processor (
 	   end
 	   EXECUTE: begin
 	      if(!isSYSTEM) begin
-		 /* verilator lint_off WIDTH */
+                 /* verilator lint_off WIDTH */
 		 PC <= nextPC;
-		 /* verilator lint_on WIDTH */		 
+                 /* verilator lint_on WIDTH */
 	      end
-	      state <= isLoad  ? WAIT_DATA : FETCH_INSTR;
+              state <= isLoad  ? WAIT_DATA : FETCH_INSTR;
+
 `ifdef BENCH      
 	      if(isSYSTEM) $finish();
 `endif      
 	   end
 	   WAIT_DATA: begin
-	      if(!mem_rbusy) begin
-		 state <= FETCH_INSTR;
-	      end
+	      if(!mem_rbusy) state <= FETCH_INSTR;
 	   end
 	 endcase 
       end
    end
 
-   assign writeBackEn = (state==EXECUTE && !isBranch && !isStore) ||
-			(state==WAIT_DATA) ;
-
-   /* verilator lint_off WIDTH */
    assign mem_addr = (state == WAIT_INSTR || state == FETCH_INSTR) ?
-		     PC : loadstore_addr ;
-   /* verilator lint_on WIDTH */
-   
+                     {7'b0, PC} : loadstore_addr;
    assign mem_rstrb = (state == FETCH_INSTR || (state == EXECUTE & isLoad));
    assign mem_wmask = {4{(state == EXECUTE) & isStore}} & STORE_wmask;
-
+   
 endmodule
-
 
 module SOC (
     input  CLK,               // system clock 
@@ -346,33 +334,40 @@ module SOC (
     input  SPIFLASH_MISO      // SPI flash MISO input
 );
 
+   // Memory-mapped IO in IO page, 1-hot addressing in word address.   
+   localparam IO_LEDS_bit      = 0;  // W five leds
+   localparam IO_UART_DAT_bit  = 1;  // W data to send (8 bits) 
+   localparam IO_UART_CNTL_bit = 2;  // R status. bit 9: busy sending
+   
    wire clk;
    wire resetn;
-
    wire [31:0] mem_addr;
    wire [31:0] mem_rdata;
-   wire        mem_rbusy;
+   wire mem_rbusy;
    wire mem_rstrb;
    wire [31:0] mem_wdata;
    wire [3:0]  mem_wmask;
+   wire [31:0] RAM_rdata;
+   wire [29:0] mem_wordaddr = mem_addr[31:2];
+   wire isSPIFlash  = mem_addr[23];
+   wire isIO  = mem_addr[22];
+   wire isRAM = !isIO;
+   wire mem_wstrb = |mem_wmask;
+   wire [31:0] SPIFlash_rdata;
+   wire SPIFlash_rbusy;
+   wire uart_valid = isIO & mem_wstrb & mem_wordaddr[IO_UART_DAT_bit];
+   wire uart_ready;
 
    Processor CPU(
       .clk(clk),
       .resetn(resetn),		 
       .mem_addr(mem_addr),
       .mem_rdata(mem_rdata),
-      .mem_rstrb(mem_rstrb),
       .mem_rbusy(mem_rbusy),
+      .mem_rstrb(mem_rstrb),
       .mem_wdata(mem_wdata),
       .mem_wmask(mem_wmask)
    );
-   
-   wire [31:0] RAM_rdata;
-   wire [29:0] mem_wordaddr = mem_addr[31:2];
-   wire isSPIFlash  = mem_addr[23];              // 1xxxx  0x800000
-   wire isIO        = mem_addr[23:22] == 2'b01;  // 01xxx
-   wire isRAM = !(mem_addr[23] | mem_addr[22]);  // 00xxx
-   wire mem_wstrb = |mem_wmask;
    
    Memory RAM(
       .clk(clk),
@@ -383,8 +378,6 @@ module SOC (
       .mem_wmask({4{isRAM}}&mem_wmask)
    );
 
-   wire [31:0] SPIFlash_rdata;
-   wire SPIFlash_rbusy;
    MappedSPIFlash SPIFlash(
       .clk(clk),
       .word_address(mem_wordaddr[19:0]),
@@ -396,27 +389,19 @@ module SOC (
       .MOSI(SPIFLASH_MOSI),
       .MISO(SPIFLASH_MISO)
    );
-   
-   // Memory-mapped IO in IO page, 1-hot addressing in word address.   
-   localparam IO_LEDS_bit      = 0;  // W five leds
-   localparam IO_UART_DAT_bit  = 1;  // W data to send (8 bits) 
-   localparam IO_UART_CNTL_bit = 2;  // R status. bit 9: busy sending
-   
-   reg [4:0] leds;
+
+   // Plug the leds to MEM memwdata to see its contents
+   reg [7:0] leds;
    always @(posedge clk) begin
       if(isIO & mem_wstrb & mem_wordaddr[IO_LEDS_bit]) begin
-	 leds <= mem_wdata[4:0];
-//	 $display("Value sent to LEDS: %b %d %d",mem_wdata,mem_wdata,$signed(mem_wdata));
+	 leds <= mem_wdata[7:0]; // limit mem_wdata to 8 bits
       end
    end
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
-
-   wire uart_valid = isIO & mem_wstrb & mem_wordaddr[IO_UART_DAT_bit];
-   wire uart_ready;
+   assign LEDS = ~leds;
 
    corescore_emitter_uart #(
       .clk_freq_hz(`CPU_FREQ*1000000),
-        .baud_rate(1000000)
+      .baud_rate(1000000)			    
    ) UART(
       .i_clk(clk),
       .i_rst(!resetn),
@@ -425,27 +410,36 @@ module SOC (
       .o_ready(uart_ready),
       .o_uart_tx(TXD)      			       
    );
-   
+
    wire [31:0] IO_rdata = 
 	       mem_wordaddr[IO_UART_CNTL_bit] ? { 22'b0, !uart_ready, 9'b0}
 	                                      : 32'b0;
-
+   
    assign mem_rdata = isRAM      ? RAM_rdata :
-                      isSPIFlash ? SPIFlash_rdata : 
+                      isSPIFlash ? SPIFlash_rdata :
 	                           IO_rdata ;
 
    assign mem_rbusy = SPIFlash_rbusy;
-   assign LEDS[4:0] = leds;
-   assign LEDS[7:5] = 3'b000;
-   
+
 `ifdef BENCH
+   reg [7:0] last_char; // To store the previous character
+
    always @(posedge clk) begin
       if(uart_valid) begin
-	 $write("%c", mem_wdata[7:0] );
-	 $fflush(32'h8000_0001);
+         $write("%c", mem_wdata[7:0]);
+         $fflush(32'h8000_0001);
+
+         // Check if we just received 'K' (8'd75) and the previous was 'O' (8'd79)
+         if (last_char == 8'd79 && mem_wdata[7:0] == 8'd75) begin
+            $display("\n[BENCH] Checksum OK detected. Terminating simulation.");
+            $finish();
+         end
+
+         // Update the history
+         last_char <= mem_wdata[7:0];
       end
    end
-`endif   
+`endif
    
    // Gearbox and reset circuitry.
    Clockworks CW(

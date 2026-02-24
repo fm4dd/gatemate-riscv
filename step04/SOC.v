@@ -29,7 +29,7 @@ module SOC (
    reg [31:0] MEM [0:255]; 
    reg [31:0] PC;       // program counter
    reg [31:0] instr;    // current instruction
-   wire [4:0] leds;
+   wire [7:0] leds;
    
    initial begin
       PC = 0;
@@ -102,13 +102,20 @@ module SOC (
 	 instr <= MEM[PC];
 	 PC <= PC+1;
       end
-`ifdef BENCH      
-      if(isSYSTEM) $finish();
-`endif      
    end
 
-   assign leds = isSYSTEM ? 31 : {PC[0],isALUreg,isALUimm,isStore,isLoad};
-   assign {LEDS[4:0], LEDS[7:5]} = {~leds, 3'b111};
+   assign leds = isSYSTEM ? 8'b11111111 : { // all LED on ends the diagnostic pattern
+       PC[0],    // LED 7 (Blinks as PC increments)
+       isBranch, // LED 6
+       isJAL,    // LED 5
+       isJALR,   // LED 4
+       isALUreg, // LED 3
+       isALUimm, // LED 2
+       isStore,  // LED 1
+       isLoad    // LED 0
+   };
+
+   assign LEDS = ~leds; // Gatemate E1 LEDs use negative logic
    
 `ifdef BENCH   
    always @(posedge clk) begin
@@ -131,6 +138,7 @@ module SOC (
 	isStore:  $display("STORE");
 	isSYSTEM: $display("SYSTEM");
       endcase 
+      if(isSYSTEM) $finish();
    end
 `endif
 

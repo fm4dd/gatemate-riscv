@@ -74,50 +74,41 @@ The assembly program:
 ### Build FPGA Bitstream
 
 ```
-step17$ make
-/home/fm/cc-toolchain-linux/bin/yosys/yosys -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -vlog SOC_synth.v'
- /----------------------------------------------------------------------------\
- |                                                                            |
- |  yosys -- Yosys Open SYnthesis Suite                                       |
- |                                                                            |
- |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
-...
-=== SOC ===
-
-   Number of wires:                647
-   Number of wire bits:           5061
-   Number of public wires:         125
-   Number of public wire bits:    2897
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:               1207
-     CC_ADDF                       170
-     CC_BRAM_20K                     5
-     CC_BUFG                         1
-     CC_DFF                        106
-     CC_IBUF                         3
-     CC_LUT1                        37
-     CC_LUT2                        41
-     CC_LUT3                       395
-     CC_LUT4                       439
-     CC_OBUF                         9
-     CC_PLL                          1
-...
-End of script. Logfile hash: 7ca6242773, CPU: user 1.03s system 0.72s, MEM: 30.86 MB peak
-Yosys 0.29+42 (git sha1 2004a9ff4, g++ 12.2.1 -Os)
-Time spent: 30% 1x abc (0 sec), 14% 28x opt_expr (0 sec), ...
+$ make
+/home/fm/oss-cad-suite/bin/yosys -ql log/synth.log -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v ../rtl-shared/emmitter_uart.v; synth_gatemate -top SOC -luttree -nomx8 -vlog net/SOC_synth.v; write_json net/SOC_synth.json'
 test -e ../gatemate-e1.ccf || exit
-/home/fm/cc-toolchain-linux/bin/p_r/p_r -i SOC_synth.v -o SOC -ccf ../gatemate-e1.ccf +uCIO > SOC_pr.log
+/home/fm/oss-cad-suite/bin/nextpnr-himbaechel --device=CCGM1A1 --json net/SOC_synth.json --write net/SOC_impl.v -o out=net/SOC_impl.txt -o ccf=../gatemate-e1.ccf --router router2 > log/impl.log
+Info: Using uarch 'gatemate' for device 'CCGM1A1'
+Info: Using timing mode 'WORST'
+Info: Using operation mode 'SPEED'
+...
+Info: Device utilisation:
+Info: 	            USR_RSTN:       0/      1     0%
+Info: 	            CPE_COMP:       0/  20480     0%
+Info: 	         CPE_CPLINES:       7/  20480     0%
+Info: 	               IOSEL:      12/    162     7%
+Info: 	                GPIO:      12/    162     7%
+Info: 	               CLKIN:       1/      1   100%
+Info: 	              GLBOUT:       1/      1   100%
+Info: 	                 PLL:       1/      4    25%
+Info: 	            CFG_CTRL:       0/      1     0%
+Info: 	              SERDES:       0/      1     0%
+Info: 	              CPE_LT:    2067/  40960     5%
+Info: 	              CPE_FF:     106/  40960     0%
+Info: 	           CPE_RAMIO:     496/  40960     1%
+Info: 	            RAM_HALF:       5/     64     7%
+...
+Info: Program finished normally.
+/home/fm/oss-cad-suite/bin/gmpack --input net/SOC_impl.txt --bit SOC.bit
 ```
 ### Simulation
 ```
-step17$ make test
+$ make test
 Running testbench simulation
 test ! -e SOC.tb || rm SOC.tb
 test ! -e SOC.vcd || rm SOC.vcd
-/usr/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v ../rtl-shared/emmitter_uart.v
-/usr/bin/vvp SOC.tb
+/home/fm/oss-cad-suite/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v ../rtl-shared/emmitter_uart.v
+/home/fm/oss-cad-suite/bin/vvp SOC.tb
 Label:         12
 Label:         20
 Label:         52
@@ -142,45 +133,77 @@ LEDS = 11110010
 LEDS = 11110001
 LEDS = 11110000
 abcdefghijklmnopqrstuvwxyz
+SOC.v:479: $finish called at 2378738 (1s)
 ```
 
 ### Board Programming
 ```
-step17$ make prog
+$ make prog
 Programming E1 SPI Config:
-/home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader -b gatemate_evb_spi SOC_00.cfg
-Jtag frequency : requested 6.00MHz   -> real 6.00MHz
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-00
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-flash chip unknown: use basic protection detection
+/home/fm/oss-cad-suite/bin/openFPGALoader  -b gatemate_evb_spi SOC.bit
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz   
+JEDEC ID: 0xc22817
+Detected: Macronix MX25R6435F 128 sectors size: 64Mb
+00000000 00000000 00000000 00
+start addr: 00000000, end_addr: 00020000
 Erasing: [==================================================] 100.00%
 Done
 Writing: [==================================================] 100.00%
 Done
-Wait for CFG_DONE DONE
 ```
 ### Output
 We can assign the UART to the E1 boards PMODB connector pins, and plug in the Digilent PMOD-UART converter to see the RSIC-V program output in a terminal window:
 
 <img src="../images/step17-uart-terminal.png" width="600px">
 
-The terminal screenshot shows a baudrate of 833.333, falling short of the UART target speed of 1Mbaud (1.000.000). The root cause is not fully clear for Gatemate, and [Issue #3](https://github.com/fm4dd/gatemate-riscv/issues/3) open for detail discussion.
+The original code had a bug that set the baud rate to 833.333, falling short of the UART target speed of 1Mbaud (1.000.000). 
+This issue as been resolved in [Issue #3](https://github.com/fm4dd/gatemate-riscv/issues/3).
 
 <img src="../images/step17-uart-setup.jpg" width="600px">
 Logic Analyzer UART protocol bitrate speedcheck:
 <img src="../images/step17-uart-speedcheck.png">
 The UART-transmitted ASCII data capture at 833.333 baud:
 <img src="../images/step17-UART-transmission.png">
+
+The serial port works at the intended baud rate:
+```
+$ ./terminal.sh 
+picocom v3.1
+
+port is        : /dev/ttyUSB2
+flowcontrol    : none
+baudrate is    : 1000000
+parity is      : none
+databits are   : 8
+stopbits are   : 1
+escape is      : C-a
+local echo is  : no
+noinit is      : no
+noreset is     : no
+hangup is      : no
+nolock is      : no
+send_cmd is    : ascii-xfr -s -l 30 -n
+receive_cmd is : rz -vv -E
+imap is        : crcrlf,lfcrlf,
+omap is        : crlf,delbs,
+emap is        : crcrlf,delbs,
+logfile is     : none
+initstring     : none
+exit_after is  : not set
+exit is        : no
+
+Type [C-a] [C-h] to see available commands
+Terminal ready
+abcdefghijklmnopqrstuvwxyz
+
+abcdefghijklmnopqrstuvwxyz
+
+abcdefghijklmnopqrstuvwxyz
+
+abcdefghijklmnopqrstuvwxyz
+
+Terminating...
+Picocom was killed
+Terminated
+```

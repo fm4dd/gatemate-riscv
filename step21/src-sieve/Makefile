@@ -24,18 +24,19 @@ firmware.hex: sieve.bram.elf
 	$(FW_WORDS_DIR)/firmware_words $< -ram $(RAMSIZE) -max_addr $(RAMSIZE) -out $@
 
 # Step-2: Link the object files into a RISCV elf binary
+# Note: $(RV32I_LIBGCC) is included to handle integer math the CPU might not have
 # -----------------------------------------------------
-sieve.bram.elf: %.o
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-ld start.o wait.o putchar.o print.o sieve.o $(RV32I_LIBGCC) $(LDFLAGS) -o $@
+sieve.bram.elf: start.o wait.o putchar.o print.o sieve.o
+	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-ld $^ $(RV32I_LIBGCC) $(LDFLAGS) -o $@
 
-# Step-1: build object files (.o) from assembler source files (.S) 
-# ----------------------------------------------------------------
-%o:
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-as $(ASFLAGS) start.S -o start.o
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-as $(ASFLAGS) wait.S -o wait.o
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-as $(ASFLAGS) putchar.S -o putchar.o
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-gcc $(CFLAGS) -c print.c -o print.o
-	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-gcc $(CFLAGS) -c sieve.c -o sieve.o
+# Step-1: build object files (.o) from source files in
+# assembler (.S) and C (*.c)
+# -----------------------------------------------------
+%.o: %.S
+	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-as $(ASFLAGS) $< -o $@
+
+%.o: %.c
+	$(TOOLCHAINDIR)/bin/riscv64-unknown-elf-gcc $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f *.o *.hex *.elf

@@ -10,61 +10,63 @@ The Memory module interface gets the clk signal, mem_addr, and mem_rstrb inputs.
 
 The Processor module has the mem_addr and mem_rstrb signal (as outputs), the mem_rdata signal (as input). We also externalize the x1 register (as output) that can be used for visual debugging, and plug it to the LEDs.
 
-
-
 ![](../images/step11-modules.svg)
 
-For now we keep the SOC, Memory and Processor modules inside the same single file SOC.v. To test the CPU, the same assembly program from step09 is store into Memory, which implements a 5-bit counter. The board LED's show the counter.
+For now we keep the SOC, Memory and Processor modules inside the same single file SOC.v. To test the CPU, the same assembly program from step09 is stored into Memory, which implements a counter. The board LEDs show the counter.
+
+```verilog
+`include "../rtl-shared/riscv_assembly.v"
+   integer L0_=8;
+   initial begin
+      ADD(x1,x0,x0);
+      ADDI(x2,x0,31);
+   Label(L0_);
+      ADDI(x1,x1,1);
+      BNE(x1, x2, LabelRef(L0_));
+      EBREAK();
+      endASM();
+   end
+```
 
 ### Build FPGA Bitstream
 
 ```
-step11$ make
-/home/fm/cc-toolchain-linux/bin/yosys/yosys -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -vlog SOC_synth.v'
- /----------------------------------------------------------------------------\
- |                                                                            |
- |  yosys -- Yosys Open SYnthesis Suite                                       |
- |                                                                            |
- |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
-...
-=== SOC ===
-
-   Number of wires:                210
-   Number of wire bits:           1858
-   Number of public wires:          58
-   Number of public wire bits:    1012
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                469
-     CC_ADDF                       101
-     CC_BRAM_20K                     3
-     CC_BUFG                         2
-     CC_DFF                         58
-     CC_IBUF                         3
-     CC_LUT1                        37
-     CC_LUT2                        25
-     CC_LUT3                       148
-     CC_LUT4                        51
-     CC_MX4                         32
-     CC_OBUF                         9
-...
-End of script. Logfile hash: be7aec9440, CPU: user 0.75s system 0.05s, MEM: 25.28 MB peak
-Yosys 0.29+42 (git sha1 2004a9ff4, g++ 12.2.1 -Os)
-Time spent: 23% 1x abc (0 sec), 14% 27x opt_expr (0 sec), ...
+$ make
+/home/fm/oss-cad-suite/bin/yosys -ql log/synth.log -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -luttree -nomx8 -vlog net/SOC_synth.v; write_json net/SOC_synth.json'
 test -e ../gatemate-e1.ccf || exit
-/home/fm/cc-toolchain-linux/bin/p_r/p_r -i SOC_synth.v -o SOC -ccf ../gatemate-e1.ccf +uCIO > SOC_pr.log
+/home/fm/oss-cad-suite/bin/nextpnr-himbaechel --device=CCGM1A1 --json net/SOC_synth.json --write net/SOC_impl.v -o out=net/SOC_impl.txt -o ccf=../gatemate-e1.ccf --router router2 > log/impl.log
+Info: Using uarch 'gatemate' for device 'CCGM1A1'
+Info: Using timing mode 'WORST'
+Info: Using operation mode 'SPEED'
+...
+Info: Device utilisation:
+Info: 	            USR_RSTN:       0/      1     0%
+Info: 	            CPE_COMP:       0/  20480     0%
+Info: 	         CPE_CPLINES:       5/  20480     0%
+Info: 	               IOSEL:      12/    162     7%
+Info: 	                GPIO:      12/    162     7%
+Info: 	               CLKIN:       1/      1   100%
+Info: 	              GLBOUT:       1/      1   100%
+Info: 	                 PLL:       0/      4     0%
+Info: 	            CFG_CTRL:       0/      1     0%
+Info: 	              SERDES:       0/      1     0%
+Info: 	              CPE_LT:     748/  40960     1%
+Info: 	              CPE_FF:      61/  40960     0%
+Info: 	           CPE_RAMIO:     251/  40960     0%
+Info: 	            RAM_HALF:       3/     64     4%
+...
+Info: Program finished normally.
+/home/fm/oss-cad-suite/bin/gmpack --input net/SOC_impl.txt --bit SOC.bit
 ```
 ### Simulation
 ```
-step11$ make test
+$ make test
 Running testbench simulation
 test ! -e SOC.tb || rm SOC.tb
 test ! -e SOC.vcd || rm SOC.vcd
-/usr/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
-/usr/bin/vvp SOC.tb
+/home/fm/oss-cad-suite/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
+/home/fm/oss-cad-suite/bin/vvp SOC.tb
 Label:          8
-LEDS = 111xxxxx
 ALUreg rd= 1 rs1= 0 rs2= 0 funct3=000
 x1 <= 00000000000000000000000000000000
 ALUimm rd= 2 rs1= 0 imm=31 funct3=000
@@ -93,35 +95,25 @@ ALUimm rd= 1 rs1= 1 imm=1 funct3=000
 x1 <= 00000000000000000000000000000110
 LEDS = 11111001
 BRANCH rs1=1 rs2=2
-^C** VVP Stop(0) **
-** Flushing output streams.
-** Current simulation time is 22936610 ticks.
-> finish
-** Continue **
+ALUimm rd= 1 rs1= 1 imm=1 funct3=000
+x1 <= 00000000000000000000000000000111
+LEDS = 11111000
+Target LED state reached. Ending...
+SOC_tb.v:26: $finish called at 7798784 (1s)
+
 ```
 
 ### Board Programming
 ```
-step11$ make prog
+$ make prog
 Programming E1 SPI Config:
-/home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader -b gatemate_evb_spi SOC_00.cfg
-Jtag frequency : requested 6.00MHz   -> real 6.00MHz
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-00
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-flash chip unknown: use basic protection detection
+/home/fm/oss-cad-suite/bin/openFPGALoader  -b gatemate_evb_spi SOC.bit
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz
+JEDEC ID: 0xc22817
+Detected: Macronix MX25R6435F 128 sectors size: 64Mb
+00000000 00000000 00000000 00
+start addr: 00000000, end_addr: 00010000
 Erasing: [==================================================] 100.00%
 Done
 Writing: [==================================================] 100.00%

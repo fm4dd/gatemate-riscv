@@ -4,7 +4,7 @@
 
 This folder is step06 of the popular FPGA tutorial ["From Blinker to RISCV"](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV) by BrunoLevy.
 
-Step06 implements the arithmetic logic unit (ALU). For more information, see [Episode IV: the ALU and the predicates](https://github.com/BrunoLevy/learn-fpga/blob/master/FemtoRV/TUTORIALS/DESIGN/FemtoRV32_IV.md).
+Step06 implements the arithmetic logic unit (ALU). For more information, see [Episode IV: the ALU and the predicates](https://github.com/BrunoLevy/learn-fpga/blob/master/FemtoRV/TUTORIALS/DESIGN/FemtoRV32_IV.md). The RISCV core implementation reached 20 instructions.
 
 The ALU takes two inputs aluIn1 and aluIn2, computes aluIn1 OP aluIn2, and stores the result in aluOut:
 ```verilog
@@ -44,51 +44,41 @@ The CPU executes a small code block stored MEM. The board LED's show the result 
 
 ### Build FPGA Bitstream
 ```
-step06$ make
-/home/fm/cc-toolchain-linux/bin/yosys/yosys -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -vlog SOC_synth.v'
- /----------------------------------------------------------------------------\
- |                                                                            |
- |  yosys -- Yosys Open SYnthesis Suite                                       |
- |                                                                            |
- |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
-...
-=== SOC ===
-
-   Number of wires:                332
-   Number of wire bits:           1884
-   Number of public wires:          32
-   Number of public wire bits:     492
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                675
-     CC_ADDF                        94
-     CC_BRAM_20K                     3
-     CC_BUFG                         2
-     CC_DFF                         37
-     CC_IBUF                         3
-     CC_LUT1                        37
-     CC_LUT2                        54
-     CC_LUT3                       256
-     CC_LUT4                       150
-     CC_MX4                         30
-     CC_OBUF                         9
-...
-End of script. Logfile hash: 3e617aa99b, CPU: user 0.63s system 0.22s, MEM: 27.16 MB peak
-Yosys 0.29+42 (git sha1 2004a9ff4, g++ 12.2.1 -Os)
-Time spent: 28% 1x abc (0 sec), 14% 29x opt_expr (0 sec), ...
+$ make
+/home/fm/oss-cad-suite/bin/yosys -ql log/synth.log -p 'read -sv SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v; synth_gatemate -top SOC -luttree -nomx8 -vlog net/SOC_synth.v; write_json net/SOC_synth.json'
 test -e ../gatemate-e1.ccf || exit
-/home/fm/cc-toolchain-linux/bin/p_r/p_r -i SOC_synth.v -o SOC -ccf ../gatemate-e1.ccf +uCIO > SOC_pr.log
+/home/fm/oss-cad-suite/bin/nextpnr-himbaechel --device=CCGM1A1 --json net/SOC_synth.json --write net/SOC_impl.v -o out=net/SOC_impl.txt -o ccf=../gatemate-e1.ccf --router router2 > log/impl.log
+Info: Using uarch 'gatemate' for device 'CCGM1A1'
+Info: Using timing mode 'WORST'
+Info: Using operation mode 'SPEED'
+...
+Info: Device utilisation:
+Info: 	            USR_RSTN:       0/      1     0%
+Info: 	            CPE_COMP:       0/  20480     0%
+Info: 	         CPE_CPLINES:       4/  20480     0%
+Info: 	               IOSEL:      12/    162     7%
+Info: 	                GPIO:      12/    162     7%
+Info: 	               CLKIN:       1/      1   100%
+Info: 	              GLBOUT:       1/      1   100%
+Info: 	                 PLL:       0/      4     0%
+Info: 	            CFG_CTRL:       0/      1     0%
+Info: 	              SERDES:       0/      1     0%
+Info: 	              CPE_LT:     999/  40960     2%
+Info: 	              CPE_FF:      40/  40960     0%
+Info: 	           CPE_RAMIO:     242/  40960     0%
+Info: 	            RAM_HALF:       3/     64     4%
+...
+Info: Program finished normally.
+/home/fm/oss-cad-suite/bin/gmpack --input net/SOC_impl.txt --bit SOC.bit
 ```
 ### Simulation
 ```
-step06$ make test
+$ make test
 Running testbench simulation
 test ! -e SOC.tb || rm SOC.tb
 test ! -e SOC.vcd || rm SOC.vcd
-/usr/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
-/usr/bin/vvp SOC.tb
-LEDS = 111xxxxx
+/home/fm/oss-cad-suite/bin/iverilog -DBENCH -o SOC.tb -s SOC_tb SOC_tb.v SOC.v ../rtl-shared/clockworks.v ../rtl-shared/pll_gatemate.v
+/home/fm/oss-cad-suite/bin/vvp SOC.tb
 ALUreg rd= 1 rs1= 0 rs2= 0 funct3=000
 x1 <= 00000000000000000000000000000000
 ALUimm rd= 1 rs1= 1 imm=1 funct3=000
@@ -115,32 +105,22 @@ ALUimm rd= 3 rs1= 3 imm=1029 funct3=101
 x3 <= 11111100000000000000000000000000
 ALUimm rd= 1 rs1= 3 imm=26 funct3=101
 x1 <= 00000000000000000000000000111111
-LEDS = 11100000
+LEDS = 11000000
 SYSTEM
+SOC.v:220: $finish called at 18087935 (1s)
 ```
 
 ### Board Programming
 ```
-step06$ make prog
+$ make prog
 Programming E1 SPI Config:
-/home/fm/cc-toolchain-linux/bin/openFPGALoader/openFPGALoader -b gatemate_evb_spi SOC_00.cfg
-Jtag frequency : requested 6.00MHz   -> real 6.00MHz
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-00
-Detail:
-Jedec ID          : c2
-memory type       : 28
-memory capacity   : 17
-EDID + CFD length : c2
-EDID              : 1728
-CFD               :
-flash chip unknown: use basic protection detection
+/home/fm/oss-cad-suite/bin/openFPGALoader  -b gatemate_evb_spi SOC.bit
+empty
+Jtag frequency : requested 6.00MHz    -> real 6.00MHz   
+JEDEC ID: 0xc22817
+Detected: Macronix MX25R6435F 128 sectors size: 64Mb
+00000000 00000000 00000000 00
+start addr: 00000000, end_addr: 00020000
 Erasing: [==================================================] 100.00%
 Done
 Writing: [==================================================] 100.00%

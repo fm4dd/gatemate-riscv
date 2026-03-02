@@ -2,8 +2,6 @@
 
 ### Description
 
-**Note** This step does not work yet. There is a issue with the Verilog flash driver and the Gatemate E1 board. This is discussed in [Issue 2]().
-
 This folder is step22 of the popular FPGA tutorial ["From Blinker to RISCV"](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV) by BrunoLevy.
 
 Step22 loads the [ST-NICCC megademo](https://www.pouet.net/prod.php?which=1251) 'C' program into BRAM, and introduces data read from the FPGA flash storage. The ST-NICCC megademo data file scene1.dat gets stored into the Gatemate FPGA flash at 1M offset (above the FPGA bitstream) during programming. The FPA code runs the ST-NICCC megademo program that reads the scene data from flash, and outputs it as ASCII pseudo-graphic to the UART.
@@ -126,4 +124,4 @@ During troubleshooting of the SPI flash access I checked the Gatemate flash prog
 The serial output should show an animation on the terminal, however my output looks different from the original project.
 It is supposed to look like this:
 ![step22 animation screenshots](https://github.com/BrunoLevy/learn-fpga/blob/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV/ST_NICCC_tty.png).
-Possibly the serial baud rate is too slow...
+Possibly the serial baud rate is still too slow...

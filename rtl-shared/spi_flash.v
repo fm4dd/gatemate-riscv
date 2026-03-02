@@ -62,7 +62,8 @@
 `endif
 
 `ifdef CCA1
- `define SPI_FLASH_READ
+ //`define SPI_FLASH_READ
+ `define SPI_FLASH_FAST_READ
  `define SPI_FLASH_CONFIGURED
 `endif
 

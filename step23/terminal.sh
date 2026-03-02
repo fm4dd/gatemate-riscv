@@ -8,4 +8,4 @@ BAUDS=1000000         # UART speed ouput for CPU_FREQ 10 setting
 #screen $DEVICE $BAUDS
 
 # PICOCOM exit: <ctrl> a <ctrl> x   package: sudo apt-get install picocom
-picocom -b $BAUDS $DEVICE --imap lfcrlf,crcrlf --omap delbs,crlf --send-cmd "ascii-xfr -s -l 30 -n"
+tail -f /dev/null | timeout 0.3s picocom -q -b $BAUDS $DEVICE --imap lfcrlf,crcrlf

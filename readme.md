@@ -67,9 +67,9 @@ Enjoy!
 #### RISC-V CPU Apps in Assembly and C
 - [Step20](step20) RISC-V CPU - Run Assembly Programs from BRAM
 - [Step21](step21) RISC-V CPU - Run 'C' Programs from BRAM
-- [Step22](step22) RISC-V CPU - Run 'C' Program Data from SPI Flash Memory
-- [Step23](step23) RISC-V CPU - Run 'C' Programs from SPI Flash Memory
-- [Step24](step24) RISC-V CPU - 'C' Program Reset and Flash Storage Improvements
+- [Step22](step22) RISC-V CPU - Run RISC-V Program Data from SPI Flash Memory
+- [Step23](step23) RISC-V CPU - Run RISC-V Programs from SPI Flash Memory
+- [Step24](step24) RISC-V CPU - Program Reset and Flash Storage Improvements
 
 ### Next Steps / Further Reading
 Bruno Levy created the sequel tutorial ["Episode II"](https://github.com/BrunoLevy/learn-fpga/blob/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV/PIPELINE.md) that improves the RISC-V CPU design into a pipelined CPU. This requires a FPGA with at least 128kB BRAM. The DS1001 datasheet for Gatemate's CCGM1A1 FPGA specifies 1,310,720 bits (163KB) BRAM, organized in 32 SRAM blocks that are configurable either as 20Kbit or 40Kbit blocks. This sounds promising ...

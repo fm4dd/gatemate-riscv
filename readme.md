@@ -5,7 +5,7 @@
 <img src="images/gatemate-e1.jpg" width="250px">
 &nbsp;<img src="images/riscv-color.svg" width="240px">
 
-This repository contains the Verilog project folders for the popular FPGA tutorial ["From Blinker to RISCV"](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV) by BrunoLevy. The original tutorial has been adapted for the [Gatemate E1 FPGA evaluation board](https://www.colognechip.com/programmable-logic/gatemate-evaluation-board/) made by Cologne Chip. It describes a step-by-step implementation of the [FemtoRV](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV) softcore CPU, which is a minimalistic RISC-V CPU design written in Verilog.
+This repository contains the Verilog project folders for episode I of the popular FPGA tutorial ["From Blinker to RISCV"](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV) by BrunoLevy. The original tutorial has been adapted for the [Gatemate E1 FPGA evaluation board](https://www.colognechip.com/programmable-logic/gatemate-evaluation-board/) made by Cologne Chip. It describes a step-by-step implementation of the [FemtoRV](https://github.com/BrunoLevy/learn-fpga/tree/master/FemtoRV) softcore CPU, which is a minimalistic RISC-V CPU design written in Verilog.
 
 Most of the tutorial steps require only a pushbutton and a set of LEDs, they can be easily completed using the Gatemate E1 evaluation board "stand-alone". Only later exercises interface with additional hardware that need extra connectivity. For example, the UART serial output introduced in step17 can be achieved with Digilents [PMOD USBUART](https://digilent.com/reference/pmod/pmodusbuart/start).
 
@@ -72,7 +72,7 @@ Enjoy!
 - [Step24](step24) RISC-V CPU - Program Reset and Flash Storage Improvements
 
 ### Next Steps / Further Reading
-Bruno Levy created the sequel tutorial ["Episode II"](https://github.com/BrunoLevy/learn-fpga/blob/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV/PIPELINE.md) that improves the RISC-V CPU design into a pipelined CPU. This requires a FPGA with at least 128kB BRAM. The DS1001 datasheet for Gatemate's CCGM1A1 FPGA specifies 1,310,720 bits (163KB) BRAM, organized in 32 SRAM blocks that are configurable either as 20Kbit or 40Kbit blocks. This sounds promising ...
+Bruno Levy created the sequel tutorial ["Episode II"](https://github.com/BrunoLevy/learn-fpga/blob/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV/PIPELINE.md) that improves the RISC-V CPU design into a pipelined CPU. This requires a FPGA with at least 128kB BRAM, which easily fits into the Gatemate FPGA (CCGM1A1: 160KB RAM). The "Episode II" tutorial for Gatemate can be found here: [https://github.com/fm4dd/gatemate-riscv-2](https://github.com/fm4dd/gatemate-riscv-2).
 
 Almost all content is Copyright (c) 2020-2021, Bruno Levy All rights reserved. ([License](https://github.com/BrunoLevy/learn-fpga/blob/master/FemtoRV/LICENSE.md))
 Small adoption changes fall under the same license.
